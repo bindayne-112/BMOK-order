@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vòng Quay Bánh Mì May Mắn</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('https://bindayne-112.github.io/banhmi-tichdiem/assets/bg-caro.jpg') no-repeat center center fixed;
+      background-size: cover;
+      text-align: center;
+      padding: 20px;
+    }
+    .wheel-container {
+      position: relative;
+      margin: 50px auto;
+      width: 300px;
+      height: 300px;
+    }
+    #wheel {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 8px solid #ff6600;
+      background: conic-gradient(#fff176 0deg 45deg, #ff8a65 45deg 90deg,
+                                 #aed581 90deg 135deg, #4db6ac 135deg 180deg,
+                                 #fff176 180deg 225deg, #ff8a65 225deg 270deg,
+                                 #aed581 270deg 315deg, #4db6ac 315deg 360deg);
+      transition: transform 4s cubic-bezier(0.33, 1, 0.68, 1);
+    }
+    .pointer {
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-bottom: 30px solid red;
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    #spinBtn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background-color: #ff6600;
+      color: white;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎉 Vòng Quay Bánh Mì May Mắn 🎉</h1>
+  <div class="wheel-container">
+    <div class="pointer"></div>
+    <div id="wheel"></div>
+  </div>
+  <button id="spinBtn" onclick="spin()">Quay Ngay</button>
+
+  <script>
+    let spinning = false;
+    function spin() {
+      if (spinning) return;
+      spinning = true;
+
+      const wheel = document.getElementById('wheel');
+      const randDegree = Math.floor(Math.random() * 360) + 360 * 5;
+      wheel.style.transform = 'rotate(' + randDegree + 'deg)';
+
+      setTimeout(() => {
+        alert("🎊 Kết quả quay sẽ được xử lý ở đây");
+        spinning = false;
+      }, 4500);
+    }
+  </script>
+</body>
+</html>
