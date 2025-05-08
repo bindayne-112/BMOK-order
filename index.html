@@ -4,77 +4,153 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vòng Quay Bánh Mì May Mắn</title>
+  <title>Vòng Quay May Mắn - Ông Kòi</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: url('https://bindayne-112.github.io/banhmi-tichdiem/assets/bg-caro.jpg') no-repeat center center fixed;
+      background: url('bg.jpg') no-repeat center center fixed;
       background-size: cover;
-      text-align: center;
+      margin: 0;
       padding: 20px;
+      text-align: center;
     }
-    .wheel-container {
-      position: relative;
-      margin: 50px auto;
-      width: 300px;
-      height: 300px;
+    .container {
+      max-width: 400px;
+      margin: 40px auto;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    .logo {
+      width: 100px;
+      margin-bottom: 10px;
     }
     #wheel {
-      width: 100%;
-      height: 100%;
+      width: 300px;
+      height: 300px;
       border-radius: 50%;
-      border: 8px solid #ff6600;
-      background: conic-gradient(#fff176 0deg 45deg, #ff8a65 45deg 90deg,
-                                 #aed581 90deg 135deg, #4db6ac 135deg 180deg,
-                                 #fff176 180deg 225deg, #ff8a65 225deg 270deg,
-                                 #aed581 270deg 315deg, #4db6ac 315deg 360deg);
+      border: 10px solid #ff6600;
+      background: conic-gradient(
+        #ffcc80 0deg 45deg, #fff59d 45deg 90deg,
+        #81c784 90deg 135deg, #4db6ac 135deg 180deg,
+        #ffcc80 180deg 225deg, #fff59d 225deg 270deg,
+        #81c784 270deg 315deg, #4db6ac 315deg 360deg
+      );
+      margin: 0 auto;
+      position: relative;
       transition: transform 4s cubic-bezier(0.33, 1, 0.68, 1);
     }
     .pointer {
       width: 0;
       height: 0;
-      border-left: 15px solid transparent;
-      border-right: 15px solid transparent;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
       border-bottom: 30px solid red;
       position: absolute;
       top: -30px;
       left: 50%;
       transform: translateX(-50%);
+      z-index: 10;
     }
-    #spinBtn {
+    .btn {
       margin-top: 20px;
-      padding: 12px 24px;
       background-color: #ff6600;
       color: white;
-      font-size: 18px;
       border: none;
       border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 18px;
       cursor: pointer;
+    }
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      display: none;
+      z-index: 999;
+    }
+    input {
+      padding: 10px;
+      width: 100%;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>🎉 Vòng Quay Bánh Mì May Mắn 🎉</h1>
-  <div class="wheel-container">
+  <div class="container">
+    <img src="logo.png" class="logo" alt="Logo">
+    <h2>🎉 Vòng Quay Bánh Mì May Mắn 🎉</h2>
+    <input type="tel" id="phone" placeholder="Nhập số điện thoại Zalo" maxlength="10" />
     <div class="pointer"></div>
     <div id="wheel"></div>
+    <button class="btn" onclick="handlePlay()">Quay Ngay</button>
   </div>
-  <button id="spinBtn" onclick="spin()">Quay Ngay</button>
+
+  <div class="popup" id="popup">
+    <h2 id="popupTitle"></h2>
+    <p id="popupMessage"></p>
+    <button class="btn" onclick="closePopup()">Đóng</button>
+  </div>
 
   <script>
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbzmDx_22lpkyLLhtvZjOJj6ygyB4kwdK76TVbBpkmovLUQ96BjQsbEkB4USfQxr3V3Lew/exec";
     let spinning = false;
-    function spin() {
+
+    function handlePlay() {
+      const phone = document.getElementById("phone").value.trim();
+      if (!/^0\d{9}$/.test(phone)) {
+        showPopup("Lỗi", "Vui lòng nhập số điện thoại hợp lệ (10 số bắt đầu bằng 0).");
+        return;
+      }
       if (spinning) return;
       spinning = true;
 
-      const wheel = document.getElementById('wheel');
-      const randDegree = Math.floor(Math.random() * 360) + 360 * 5;
-      wheel.style.transform = 'rotate(' + randDegree + 'deg)';
+      const deg = Math.floor(360 * 5 + Math.random() * 360);
+      document.getElementById("wheel").style.transform = `rotate(${deg}deg)`;
 
       setTimeout(() => {
-        alert("🎊 Kết quả quay sẽ được xử lý ở đây");
-        spinning = false;
-      }, 4500);
+        fetch(`${SHEET_URL}?sdt=${phone}`)
+          .then(res => res.json())
+          .then(data => {
+            let title = "Không trúng";
+            let msg = "Chưa may mắn, hãy thử lại vào ngày mai.";
+            if (data.status === "trung") {
+              title = "🎉 Trúng Thưởng!";
+              msg = "Bạn đã nhận 1 ổ bánh mì miễn phí!";
+            } else if (data.status === "played") {
+              title = "Oops!";
+              msg = "Bạn đã chơi hôm nay rồi. Hãy quay lại vào ngày mai nhé.";
+            } else if (data.status === "het") {
+              title = "Hết quà";
+              msg = "Hôm nay đã đủ số người trúng thưởng. Hẹn bạn quay lại vào ngày mai!";
+            }
+            showPopup(title, msg);
+            spinning = false;
+          })
+          .catch(err => {
+            showPopup("Lỗi", "Không thể kết nối, vui lòng thử lại sau.");
+            spinning = false;
+          });
+      }, 4200);
+    }
+
+    function showPopup(title, msg) {
+      document.getElementById("popupTitle").innerText = title;
+      document.getElementById("popupMessage").innerText = msg;
+      document.getElementById("popup").style.display = "block";
+    }
+
+    function closePopup() {
+      document.getElementById("popup").style.display = "none";
     }
   </script>
 </body>
