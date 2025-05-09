@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -39,7 +38,7 @@
       );
       margin: 0 auto;
       position: relative;
-      transition: transform 4s cubic-bezier(0.33, 1, 0.68, 1);
+      transition: transform 2s cubic-bezier(0.33, 1, 0.68, 1);
     }
     .pointer {
       width: 0;
@@ -102,7 +101,12 @@
   </div>
 
   <script>
-    const SHEET_URL = "https://script.google.com/macros/s/AKfycbzmDx_22lpkyLLhtvZjOJj6ygyB4kwdK76TVbBpkmovLUQ96BjQsbEkB4USfQxr3V3Lew/exec";
+    function buildUrl(phone) {
+      const baseUrl = "https://script.google.com/macros/s/AKfycbzmDx_22lpkyLLhtvZjOJj6ygyB4kwdK76TVbBpkmovLUQ96BjQsbEkB4USfQxr3V3Lew/exec";
+      const fullUrl = `${baseUrl}?sdt=${phone}`;
+      return "https://api.allorigins.win/raw?url=" + encodeURIComponent(fullUrl);
+    }
+
     let spinning = false;
 
     function handlePlay() {
@@ -114,11 +118,11 @@
       if (spinning) return;
       spinning = true;
 
-      const deg = Math.floor(360 * 5 + Math.random() * 360);
+      const deg = Math.floor(360 * 3 + Math.random() * 360);
       document.getElementById("wheel").style.transform = `rotate(${deg}deg)`;
 
       setTimeout(() => {
-        fetch(`${SHEET_URL}?sdt=${phone}`)
+        fetch(buildUrl(phone))
           .then(res => res.json())
           .then(data => {
             let title = "Không trúng";
@@ -140,7 +144,7 @@
             showPopup("Lỗi", "Không thể kết nối, vui lòng thử lại sau.");
             spinning = false;
           });
-      }, 4200);
+      }, 2200);
     }
 
     function showPopup(title, msg) {
