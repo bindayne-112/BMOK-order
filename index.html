@@ -102,9 +102,7 @@
 
   <script>
     function buildUrl(phone) {
-      const baseUrl = "https://script.google.com/macros/s/AKfycbzmDx_22lpkyLLhtvZjOJj6ygyB4kwdK76TVbBpkmovLUQ96BjQsbEkB4USfQxr3V3Lew/exec";
-      const fullUrl = `${baseUrl}?sdt=${phone}`;
-      return "https://api.allorigins.win/raw?url=" + encodeURIComponent(fullUrl);
+      return `https://script.google.com/macros/s/AKfycbzmDx_22lpkyLLhtvZjOJj6ygyB4kwdK76TVbBpkmovLUQ96BjQsbEkB4USfQxr3V3Lew/exec?sdt=${phone}`;
     }
 
     let spinning = false;
