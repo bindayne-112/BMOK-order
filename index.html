@@ -126,7 +126,7 @@
           .then(res => res.json())
           .then(data => {
             let title = "Không trúng";
-            let msg = "Chưa may mắn, hãy thử lại vào ngày mai.";
+            let msg = `Chưa may mắn, hãy thử lại vào ngày mai. (Random: ${data.random || "?"})`;
             if (data.status === "trung") {
               title = "🎉 Trúng Thưởng!";
               msg = "Bạn đã nhận 1 ổ bánh mì miễn phí!";
@@ -136,6 +136,9 @@
             } else if (data.status === "het") {
               title = "Hết quà";
               msg = "Hôm nay đã đủ số người trúng thưởng. Hẹn bạn quay lại vào ngày mai!";
+            } else if (data.status === "config_error") {
+              title = "Lỗi cấu hình";
+              msg = "Không tìm thấy cấu hình hôm nay trong Sheet.";
             }
             showPopup(title, msg);
             spinning = false;
