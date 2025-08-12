@@ -10,10 +10,10 @@ import {
 /**
  * BÁNH MÌ ÔNG KÒI – Ordering MVP (Grab-like UI)
  *
- * PHIÊN BẢN NÂNG CẤP (v12 - Professional Refactor):
- * - FIX: Sửa lỗi nghiêm trọng không hiển thị đủ món ăn ở giao diện khách hàng.
- * - Tối ưu: Các món ưu đãi sẽ không bị lặp lại trong danh sách thực đơn chính.
- * - Tái cấu trúc logic hiển thị để đảm bảo tính ổn định và chuyên nghiệp.
+ * PHIÊN BẢN NÂNG CẤP (v13 - Business Operations):
+ * - Thêm tính năng Tình trạng Cửa hàng (Mở cửa / Tạm đóng cửa) cho Admin.
+ * - Thêm âm thanh thông báo "ting" tự động khi có đơn hàng mới.
+ * - Tối ưu hóa toàn bộ luồng vận hành chuyên nghiệp.
  */
 
 const BRAND_COLOR = "#fc6806";
@@ -98,6 +98,7 @@ const useToast = () => React.useContext(ToastContext);
 // ===== Types =====
 type MenuItem = { id: string; name: string; price: number; compareAtPrice?: number; photo?: string; available: boolean; bestSeller?: boolean; category: string; isPromo?: boolean; order: number; };
 type Category = { id: string; name: string; };
+type StoreStatus = { isOpen: boolean; };
 type CartItem = { id: string; name: string; price: number; qty: number; note?: string };
 type OrderStatus = "pending" | "completed" | "canceled";
 type PaymentMethod = "TIENMAT" | "CHUYENKHOAN";
@@ -106,11 +107,31 @@ type Order = { id: string; items: CartItem[]; total: number; contact: string; st
 // ===== Utils =====
 const vnd = (n) => n.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
 
+// ===== Audio Notification =====
+const playNotificationSound = () => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.05);
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5 note
+    oscillator.start(audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+    oscillator.stop(audioContext.currentTime + 0.5);
+};
+
 function OngKoiOrderingApp() {
   const toast = useToast();
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [storeStatus, setStoreStatus] = useState<StoreStatus>({ isOpen: true });
   const [loading, setLoading] = useState(true);
 
   // Local state
@@ -128,22 +149,22 @@ function OngKoiOrderingApp() {
   const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
+  // Ref to track initial order load for notification sound
+  const isInitialOrderLoad = useRef(true);
+
   // Fetch data from Firebase in real-time
   useEffect(() => {
     setLoading(true);
-    const qMenu = query(collection(db, "menu"), orderBy("order", "asc"));
-    const unsubMenu = onSnapshot(qMenu, (snapshot) => {
-        const menuData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MenuItem[];
-        setMenu(menuData);
+    const unsubMenu = onSnapshot(query(collection(db, "menu"), orderBy("order", "asc")), (snapshot) => {
+        setMenu(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MenuItem[]);
         setLoading(false);
     }, (error) => {
         console.error("Firebase Error:", error);
-        toast.error("Không thể kết nối tới cơ sở dữ liệu. Vui lòng kiểm tra lại cấu hình Firebase.");
+        toast.error("Không thể kết nối tới thực đơn.");
         setLoading(false);
     });
 
-    const qCategories = query(collection(db, "categories"), orderBy("name", "asc"));
-    const unsubCategories = onSnapshot(qCategories, (snapshot) => {
+    const unsubCategories = onSnapshot(query(collection(db, "categories"), orderBy("name", "asc")), (snapshot) => {
         const catData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Category[];
         setCategories(catData);
         if (newItem.category === "") {
@@ -151,27 +172,39 @@ function OngKoiOrderingApp() {
         }
     });
 
-    const qOrders = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsubOrders = onSnapshot(qOrders, (snapshot) => {
+    const unsubOrders = onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snapshot) => {
         const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Order[];
+        if (isInitialOrderLoad.current) {
+            isInitialOrderLoad.current = false;
+        } else if (ordersData.length > orders.length) {
+            playNotificationSound();
+        }
         setOrders(ordersData);
+    });
+
+    const unsubStoreStatus = onSnapshot(doc(db, "settings", "storeStatus"), (doc) => {
+        if (doc.exists()) {
+            setStoreStatus(doc.data() as StoreStatus);
+        } else {
+            // If status doesn't exist, create it with default 'open' state
+            setDoc(doc.ref, { isOpen: true });
+        }
     });
 
     return () => {
         unsubMenu();
         unsubCategories();
         unsubOrders();
+        unsubStoreStatus();
     };
-  }, []);
+  }, [orders.length]); // Re-run effect only when order count changes for sound logic
 
   const total = useMemo(() => cart.reduce((s, i) => s + i.qty * i.price, 0), [cart]);
   const pendingOrderCount = useMemo(() => orders.filter(o => o.status === 'pending').length, [orders]);
 
-  // **REFACTORED DISPLAY LOGIC**
   const displayMenu = useMemo(() => {
     const promoItems = menu.filter(item => item.isPromo && item.available);
     const promoItemIds = new Set(promoItems.map(item => item.id));
-
     const categorizedItems = categories
       .map(cat => ({
         category: cat.name,
@@ -180,13 +213,13 @@ function OngKoiOrderingApp() {
         )
       }))
       .filter(group => group.items.length > 0);
-
     return { promos: promoItems, categorized: categorizedItems };
   }, [menu, categories]);
 
 
   // Cart operations
   const increaseQty = (m: MenuItem) => {
+    if (!storeStatus.isOpen) { toast.error("Cửa hàng đã tạm đóng cửa."); return; }
     if (!m.available) { toast.error("Món đã hết"); return; }
     const existingItem = cart.find(c => c.id === m.id);
     if (existingItem) {
@@ -292,6 +325,12 @@ function OngKoiOrderingApp() {
       await Promise.all(updates);
       toast.success("Đã cập nhật thứ tự thực đơn.");
   };
+  
+  const toggleStoreStatus = async () => {
+      const storeStatusRef = doc(db, "settings", "storeStatus");
+      await updateDoc(storeStatusRef, { isOpen: !storeStatus.isOpen });
+      toast.success(`Cửa hàng đã ${!storeStatus.isOpen ? 'Mở cửa' : 'Tạm đóng cửa'}`);
+  };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -334,7 +373,19 @@ function OngKoiOrderingApp() {
 
         {tab === 'khach' && (
           <div>
-            <div className="mt-5 space-y-6">{displayMenu.categorized.map(group => (<section key={group.category}><h3 className="text-lg font-bold mb-3">{group.category}</h3><div className="grid grid-cols-2 gap-4">{group.items.map(m => { const cartItem = cart.find(c => c.id === m.id); const qty = cartItem ? cartItem.qty : 0; return (<Card key={m.id} className="overflow-hidden"><div className="relative"><img src={m.photo} alt={m.name} className="w-full h-36 object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/200x150/fef2f2/ef4444?text=Lỗi'; } }/>{m.bestSeller && <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded-full bg-emerald-500 text-white">Bán chạy</span>}{!m.available && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white font-semibold">Hết hàng</span></div>}</div><CardContent><div className="text-sm font-medium min-h-10">{m.name}</div><div className="flex items-center justify-between mt-1"><div><div className="font-semibold">{vnd(m.price)}</div>{m.compareAtPrice > 0 && <div className="text-xs text-neutral-400 line-through">{vnd(m.compareAtPrice)}</div>}</div>{qty > 0 ? (<div className="flex items-center gap-1"><Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button><span className="font-bold w-5 text-center">{qty}</span><Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button></div>) : (<Button size="icon" className="rounded-full w-8 h-8" disabled={!m.available} onClick={() => increaseQty(m)}><PlusIcon/></Button>)}</div></CardContent></Card>)})}</div></section>))}</div>
+            {!storeStatus.isOpen && (
+                <div className="p-4 mb-4 text-center bg-red-100 text-red-800 rounded-lg">
+                    <p className="font-bold">Cửa hàng đang tạm đóng cửa!</p>
+                    <p className="text-sm">Mong bạn quay lại sau. Cảm ơn bạn!</p>
+                </div>
+            )}
+            {displayMenu.promos.length > 0 && (
+                <section className="mt-2">
+                    <h3 className="text-lg font-bold mb-2 text-yellow-500">🔥 Ưu đãi hôm nay</h3>
+                    <div className="grid grid-cols-2 gap-4">{displayMenu.promos.map(m => { const cartItem = cart.find(c => c.id === m.id); const qty = cartItem ? cartItem.qty : 0; return (<Card key={m.id} className="overflow-hidden"><div className="relative"><img src={m.photo} alt={m.name} className="w-full h-36 object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/200x150/fef2f2/ef4444?text=Lỗi'; }}/></div><CardContent><div className="text-sm font-medium min-h-10">{m.name}</div><div className="flex items-center justify-between mt-1"><div><div className="font-semibold">{vnd(m.price)}</div>{m.compareAtPrice > 0 && <div className="text-xs text-neutral-400 line-through">{vnd(m.compareAtPrice)}</div>}</div>{qty > 0 ? (<div className="flex items-center gap-1"><Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button><span className="font-bold w-5 text-center">{qty}</span><Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button></div>) : (<Button size="icon" className="rounded-full w-8 h-8" disabled={!m.available || !storeStatus.isOpen} onClick={() => increaseQty(m)}><PlusIcon/></Button>)}</div></CardContent></Card>);})}</div>
+                </section>
+            )}
+            <div className="mt-5 space-y-6">{displayMenu.categorized.map(group => (<section key={group.category}><h3 className="text-lg font-bold mb-3">{group.category}</h3><div className="grid grid-cols-2 gap-4">{group.items.map(m => { const cartItem = cart.find(c => c.id === m.id); const qty = cartItem ? cartItem.qty : 0; return (<Card key={m.id} className="overflow-hidden"><div className="relative"><img src={m.photo} alt={m.name} className="w-full h-36 object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/200x150/fef2f2/ef4444?text=Lỗi'; } }/>{m.bestSeller && <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded-full bg-emerald-500 text-white">Bán chạy</span>}{!m.available && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white font-semibold">Hết hàng</span></div>}</div><CardContent><div className="text-sm font-medium min-h-10">{m.name}</div><div className="flex items-center justify-between mt-1"><div><div className="font-semibold">{vnd(m.price)}</div>{m.compareAtPrice > 0 && <div className="text-xs text-neutral-400 line-through">{vnd(m.compareAtPrice)}</div>}</div>{qty > 0 ? (<div className="flex items-center gap-1"><Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button><span className="font-bold w-5 text-center">{qty}</span><Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button></div>) : (<Button size="icon" className="rounded-full w-8 h-8" disabled={!m.available || !storeStatus.isOpen} onClick={() => increaseQty(m)}><PlusIcon/></Button>)}</div></CardContent></Card>)})}</div></section>))}</div>
           </div>
         )}
 
@@ -356,6 +407,17 @@ function OngKoiOrderingApp() {
 
             {adminTab === 'menu' && (
                 <div className="space-y-8">
+                    <section>
+                        <h3 className="text-base font-semibold mb-3">Tình trạng Cửa hàng</h3>
+                        <div className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                            <span className={`font-bold ${storeStatus.isOpen ? 'text-green-600' : 'text-red-600'}`}>
+                                {storeStatus.isOpen ? 'ĐANG MỞ CỬA' : 'ĐANG TẠM ĐÓNG CỬA'}
+                            </span>
+                            <button onClick={toggleStoreStatus} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${storeStatus.isOpen ? 'bg-green-500' : 'bg-gray-300'}`}>
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${storeStatus.isOpen ? 'translate-x-6' : 'translate-x-1'}`}/>
+                            </button>
+                        </div>
+                    </section>
                     <section>
                         <h3 className="text-base font-semibold mb-2">Thống kê nhanh</h3>
                         <div className="grid grid-cols-3 gap-3">
