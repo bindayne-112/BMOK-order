@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bánh Mì Ông Kòi</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tải Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        window.firebaseApp = { initializeApp };
+    </script>
+    <script type="module">
+        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        window.firebaseFirestore = { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, updateDoc, query, orderBy };
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useEffect, useMemo, useState, useCallback, useRef } = React;
+
+        // ========================================================================
+        // ===== BẮT ĐẦU CODE ỨNG DỤNG ==========================================
+        // ========================================================================
+        
+        const { initializeApp } = window.firebaseApp;
+        const { 
+            getFirestore, collection, onSnapshot, 
+            addDoc, deleteDoc, doc, setDoc, updateDoc,
+            query, orderBy
+        } = window.firebaseFirestore;
+
+        const BRAND_COLOR = "#fc6806";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyApIFFzjvfyGusxNkwTapK6H7_uIILZa9g",
+            authDomain: "banh-mi-ong-koi.firebaseapp.com",
+            projectId: "banh-mi-ong-koi",
+            storageBucket: "banh-mi-ong-koi.appspot.com",
+            messagingSenderId: "539005874689",
+            appId: "1:539005874689:web:e76150504cdd6023b78600"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // ===== Icon Components (SVG) =====
+        const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>;
+        const MinusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="5" x2="19" y1="12" y2="12"/></svg>;
+        const NoteIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4
