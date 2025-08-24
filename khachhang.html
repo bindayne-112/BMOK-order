@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bánh Mì Ông Kòi - Đặt Hàng</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tải Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        window.firebaseApp = { initializeApp };
+    </script>
+    <script type="module">
+        import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        window.firebaseFirestore = { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, query, orderBy };
+    </script>
+    <style>
+        /* Ẩn thanh cuộn cho trình duyệt Webkit (Chrome, Safari) */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        /* Ẩn thanh cuộn cho Firefox */
+        .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+</head>
+<body class="bg-neutral-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useEffect, useMemo, useState, useCallback, useRef } = React;
+        
+        const { initializeApp } = window.firebaseApp;
+        const { 
+            getFirestore, collection, onSnapshot, 
+            addDoc, doc, setDoc, query, orderBy
+        } = window.firebaseFirestore;
+
+        // --- Vui lòng thay thế bằng cấu hình Firebase của bạn ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyApIFFzjvfyGusxNkwTapK6H7_uIILZa9g",
+            authDomain: "banh-mi-ong-koi.firebaseapp.com",
+            projectId: "banh-mi-ong-koi",
+            storageBucket: "banh-mi-ong-koi.appspot.com",
+            messagingSenderId: "539005874689",
+            appId: "1:539005874689:web:e76150504cdd6023b78600"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const BRAND_COLOR = "#fc6806";
+
+        // ===== Icon Components (SVG) =====
+        const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>;
+        const MinusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="5" x2="19" y1="12" y2="12"/></svg>;
+        const NoteIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-1.5 text-gray-400"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>;
+        const ArrowRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>;
+
+        // ===== Custom UI Components =====
+        const Button = ({ children, className, variant = 'default', size = 'default', ...props }) => {
+          const baseClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:opacity-50 disabled:pointer-events-none";
+          const variants = {
+            default: `bg-[${BRAND_COLOR}] text-white hover:bg-opacity-90`,
+            outline: "border border-gray-300 bg-transparent hover:bg-neutral-100",
+          };
+          const sizes = { default: "h-10 py-2 px-4", sm: "h-9 px-3 rounded-md", icon: "h-10 w-10" };
+          return <button className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>{children}</button>;
+        };
+        const Card = ({ children, className, ...props }) => <div className={`rounded-xl border bg-white text-neutral-950 shadow-sm ${className}`} {...props}>{children}</div>;
+        const CardContent = ({ children, className, ...props }) => <div className={`p-3 ${className}`} {...props}>{children}</div>;
+        const Input = ({ className, ...props }) => <input className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-400 ${className}`} {...props} />;
+        const Textarea = ({ className, ...props }) => <textarea className={`flex min-h-[60px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-400 ${className}`} {...props} />;
+        
+        // ===== Utils =====
+        const vnd = (n) => n.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
+
+        function App() {
+          // State management for customer page
+          const [menu, setMenu] = useState([]);
+          const [categories, setCategories] = useState([]);
+          const [storeStatus, setStoreStatus] = useState({ isOpen: true });
+          const [loading, setLoading] = useState(true);
+          const [cart, setCart] = useState([]);
+          const [contact, setContact] = useState("");
+          const [paymentMethod, setPaymentMethod] = useState("TIENMAT");
+          const [openCart, setOpenCart] = useState(false);
+
+          // Data fetching from Firebase
+          useEffect(() => {
+            const unsubscribers = [];
+            
+            const menuQuery = query(collection(db, "menu"), orderBy("order", "asc"));
+            unsubscribers.push(onSnapshot(menuQuery, (snapshot) => {
+                setMenu(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                setLoading(false);
+            }, (error) => console.error("Error fetching menu:", error)));
+
+            const categoriesQuery = query(collection(db, "categories"), orderBy("name", "asc"));
+            unsubscribers.push(onSnapshot(categoriesQuery, (snapshot) => {
+                setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            }, (error) => console.error("Error fetching categories:", error)));
+
+            const storeStatusRef = doc(db, "settings", "storeStatus");
+            unsubscribers.push(onSnapshot(storeStatusRef, (doc) => {
+                if (doc.exists()) {
+                    setStoreStatus(doc.data());
+                } else {
+                    setDoc(doc.ref, { isOpen: true }).catch(error => console.error("Error setting initial store status:", error));
+                }
+            }, (error) => console.error("Error fetching store status:", error)));
+
+            return () => unsubscribers.forEach(unsub => unsub());
+          }, []);
+
+          // Memoized calculations
+          const total = useMemo(() => cart.reduce((s, i) => s + i.qty * i.price, 0), [cart]);
+          const displayMenu = useMemo(() => {
+            const promoItems = menu.filter(item => item.isPromo && item.available);
+            const promoItemIds = new Set(promoItems.map(item => item.id));
+            const categorizedItems = categories
+              .map(cat => ({
+                category: cat.name,
+                items: menu.filter(item => item.category === cat.name && !promoItemIds.has(item.id))
+              }))
+              .filter(group => group.items.length > 0);
+            return { promos: promoItems, categorized: categorizedItems };
+          }, [menu, categories]);
+
+          // Cart functions
+          const increaseQty = (m) => {
+            if (!storeStatus.isOpen || !m.available) return;
+            setCart(prevCart => {
+                const existingItem = prevCart.find(c => c.id === m.id);
+                if (existingItem) {
+                    return prevCart.map(c => c.id === m.id ? { ...c, qty: c.qty + 1 } : c);
+                }
+                return [...prevCart, { id: m.id, name: m.name, price: m.price, qty: 1, note: '' }];
+            });
+          };
+          const decreaseQty = (id) => {
+            setCart(prevCart => {
+                const existingItem = prevCart.find(c => c.id === id);
+                if (!existingItem) return prevCart;
+                if (existingItem.qty === 1) {
+                    return prevCart.filter(c => c.id !== id);
+                }
+                return prevCart.map(c => c.id === id ? { ...c, qty: c.qty - 1 } : c);
+            });
+          };
+          const updateCartItemNote = (id, note) => { setCart(cart.map(item => item.id === id ? { ...item, note } : item)); };
+          
+          // Checkout
+          const checkout = async () => {
+            const phoneRegex = /^0\d{9}$/;
+            if (!phoneRegex.test(contact)) {
+                alert("Số điện thoại không hợp lệ. Vui lòng nhập 10 số, bắt đầu bằng 0.");
+                return;
+            }
+            if (cart.length === 0) return;
+            try {
+                const newOrder = { items: cart, total, contact: contact.trim(), status: "pending", payment: paymentMethod, createdAt: Date.now() };
+                await addDoc(collection(db, "orders"), newOrder);
+                alert("Đặt hàng thành công! Cảm ơn bạn.");
+                setCart([]); 
+                setOpenCart(false); 
+                setContact("");
+            } catch (error) {
+                console.error("Error placing order: ", error);
+                alert("Đã có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.");
+            }
+          };
+
+          // Helper function for contact input
+          const handleContactChange = (e) => {
+              const value = e.target.value.replace(/\D/g, '');
+              if (value.length <= 10) { setContact(value); }
+          };
+
+          if (loading) {
+              return <div className="min-h-screen flex items-center justify-center">Đang tải thực đơn...</div>
+          }
+
+          return (
+            <div className="min-h-screen">
+              <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
+                <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
+                  <div><h1 className="font-bold text-lg">BÁNH MÌ ÔNG KÒI</h1><p className="text-xs text-neutral-500">Giao hàng tận nơi</p></div>
+                </div>
+              </header>
+
+              <main className="max-w-md mx-auto px-4 pb-28">
+                {/* --- PHẦN GIAO DIỆN CỦA KHÁCH HÀNG --- */}
+                <div>
+                    {!storeStatus.isOpen && (
+                        <div className="p-4 my-4 text-center bg-red-100 text-red-800 rounded-lg">
+                            <p className="font-bold">Cửa hàng đang tạm đóng cửa!</p>
+                            <p className="text-sm">Xin lỗi quý khách vì sự bất tiện này.</p>
+                        </div>
+                    )}
+                    {displayMenu.promos.length > 0 && (
+                        <section className="mt-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-lg font-bold">Ưu đãi hôm nay</h3>
+                            </div>
+                            <div className="flex space-x-3 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide">
+                                {displayMenu.promos.map(m => {
+                                    const cartItem = cart.find(c => c.id === m.id);
+                                    const qty = cartItem ? cartItem.qty : 0;
+                                    return (
+                                        <div key={m.id} className="w-64 flex-shrink-0">
+                                            <Card className="p-2 h-full">
+                                                <div className="flex h-full items-center">
+                                                    <img src={m.photo} alt={m.name} className="w-20 h-20 object-cover rounded-lg flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/>
+                                                    <div className="flex flex-col justify-between flex-1 ml-3 h-20">
+                                                        <div>
+                                                            <p className="text-sm font-medium leading-tight" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.name}</p>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="flex items-baseline gap-2">
+                                                                <p className="font-semibold text-sm">{vnd(m.price)}</p>
+                                                                {m.compareAtPrice > 0 && <p className="text-xs text-neutral-400 line-through">{vnd(m.compareAtPrice)}</p>}
+                                                            </div>
+                                                            <div className="self-end">
+                                                                {qty > 0 ? (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button>
+                                                                        <span className="font-bold w-5 text-center">{qty}</span>
+                                                                        <Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <Button size="icon" className="rounded-full w-8 h-8" disabled={!m.available || !storeStatus.isOpen} onClick={() => increaseQty(m)}>
+                                                                        <PlusIcon/>
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    )}
+
+                    <div className="mt-5 space-y-6">{displayMenu.categorized.map(group => (<section key={group.category}><h3 className="text-lg font-bold mb-3">{group.category}</h3><div className="grid grid-cols-2 gap-4">{group.items.map(m => { const cartItem = cart.find(c => c.id === m.id); const qty = cartItem ? cartItem.qty : 0; return (<Card key={m.id} className="overflow-hidden"><div className="relative"><img src={m.photo} alt={m.name} className="w-full h-36 object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/200x150/fef2f2/ef4444?text=Lỗi'; } }/>{m.bestSeller && <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded-full bg-emerald-500 text-white">Bán chạy</span>}{!m.available && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white font-semibold">Hết hàng</span></div>}</div><CardContent><div className="text-sm font-medium min-h-10">{m.name}</div><div className="flex items-center justify-between mt-1"><div><div className="font-semibold">{vnd(m.price)}</div>{m.compareAtPrice > 0 && <div className="text-xs text-neutral-400 line-through">{vnd(m.compareAtPrice)}</div>}</div>{qty > 0 ? (<div className="flex items-center gap-1"><Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button><span className="font-bold w-5 text-center">{qty}</span><Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button></div>) : (<Button size="icon" className="rounded-full w-8 h-8" disabled={!m.available || !storeStatus.isOpen} onClick={() => increaseQty(m)}><PlusIcon/></Button>)}</div></CardContent></Card>)})}</div></section>))}</div>
+                  </div>
+              </main>
+
+              {/* Cart Button & Modal */}
+              {cart.length > 0 && (<div className="fixed bottom-0 left-0 right-0 z-30"><div className="max-w-md mx-auto p-2"><Button className="w-full h-12 rounded-xl text-base" onClick={()=> setOpenCart(true)}><div className="flex items-center justify-between w-full"><span>{cart.reduce((s,i)=>s+i.qty,0)} món</span><span className="font-bold">{vnd(total)}</span></div></Button></div></div>)}
+              {openCart && (<div className="fixed inset-0 z-50 flex flex-col justify-end">
+                  <div className="absolute inset-0 bg-black/60" onClick={() => setOpenCart(false)}></div>
+                  <div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[80vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}>
+                      <div className="p-4 border-b flex-shrink-0"><h2 className="text-lg font-semibold text-center">Tóm tắt đơn hàng</h2></div>
+                      <div className="flex-1 p-4 space-y-3 overflow-y-auto">{cart.map(c => (<Card key={c.id}><CardContent><div className="flex-1"><div className="flex items-center justify-between"><div className="font-medium">{c.name}</div><div className="text-sm text-neutral-600">{vnd(c.price * c.qty)}</div></div><div className="mt-2 flex items-center gap-2"><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>decreaseQty(c.id)}><MinusIcon/></Button><div className="w-10 text-center font-semibold">{c.qty}</div><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>increaseQty(c)}><PlusIcon/></Button></div><Textarea className="mt-2 text-sm" placeholder="Ghi chú (ít ớt, không rau…)" value={c.note||""} onChange={e => updateCartItemNote(c.id, e.target.value)}/></div></CardContent></Card>))}</div>
+                      <div className="p-4 border-t bg-white space-y-3 flex-shrink-0">
+                          <Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={handleContactChange} type="tel" maxLength={10} />
+                          <div>
+                              <div className="text-sm font-medium mb-2">Phương thức thanh toán</div>
+                              <div className="grid grid-cols-2 gap-2">
+                                  <button onClick={() => setPaymentMethod('TIENMAT')} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'TIENMAT' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Tiền mặt</button>
+                                  <button onClick={() => setPaymentMethod('CHUYENKHOAN')} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'CHUYENKHOAN' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Chuyển khoản</button>
+                              </div>
+                          </div>
+                          <div className="flex items-center justify-between font-semibold text-lg"><span>Tổng cộng</span><span style={{ color: BRAND_COLOR }}>{vnd(total)}</span></div>
+                          <Button className="w-full h-12 rounded-xl text-base" onClick={checkout}>Đặt hàng</Button>
+                      </div>
+                  </div>
+              </div>)}
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+    </script>
+</body>
+</html>
