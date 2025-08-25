@@ -66,25 +66,39 @@
         
         const vnd = (n) => n.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
 
+        // ===== START: NÂNG CẤP TRANG CẢM ƠN =====
         const ThankYouPage = ({ order, onNewOrder }) => {
             if (!order) return null;
+
+            const getStatusDisplay = (status) => {
+              switch (status) {
+                  case 'pending': return { text: 'Đang chờ xác nhận', className: 'bg-yellow-100 text-yellow-800' };
+                  case 'processing': return { text: 'Đang thực hiện', className: 'bg-blue-100 text-blue-800' };
+                  case 'completed': return { text: 'Hoàn thành', className: 'bg-green-100 text-green-800' };
+                  case 'canceled': return { text: 'Đã hủy', className: 'bg-red-100 text-red-800' };
+                  default: return { text: 'Không xác định', className: 'bg-gray-100 text-gray-800' };
+              }
+            };
+            const statusDisplay = getStatusDisplay(order.status);
+
             return (
                 <div className="flex flex-col items-center justify-center text-center min-h-[70vh] px-4">
                     <CheckCircleIcon />
                     <h2 className="text-2xl font-bold mt-4">Đặt hàng thành công!</h2>
-                    <p className="text-neutral-600 mt-2">Cảm ơn bạn đã tin tưởng. Đơn hàng của bạn đang được chuẩn bị.</p>
+                    <p className="text-neutral-600 mt-2">Cảm ơn bạn đã tin tưởng. Vui lòng theo dõi trạng thái đơn hàng dưới đây.</p>
                     <div className="w-full max-w-sm mt-8 text-left border rounded-lg p-4 bg-white">
                         <h3 className="font-semibold border-b pb-2">Tóm tắt đơn hàng #{order.id.slice(-6)}</h3>
                         <ul className="text-sm space-y-2 py-3">
                             {order.items.map(item => (<li key={item.id} className="flex justify-between"><span>{item.qty} x {item.name}</span><span className="font-medium">{vnd(item.qty * item.price)}</span></li>))}
                         </ul>
                         <div className="border-t pt-2 flex justify-between font-bold"><span>Tổng cộng</span><span>{vnd(order.total)}</span></div>
-                        <div className="mt-2 text-sm">Trạng thái: <span className="font-semibold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">Đang chờ xác nhận</span></div>
+                        <div className="mt-2 text-sm">Trạng thái: <span className={`font-semibold px-2 py-1 rounded-full ${statusDisplay.className}`}>{statusDisplay.text}</span></div>
                     </div>
                     <Button className="w-full max-w-sm mt-8" onClick={onNewOrder}>Đặt đơn hàng mới</Button>
                 </div>
             );
         };
+        // ===== END: NÂNG CẤP TRANG CẢM ƠN =====
 
         function App() {
           const [view, setView] = useState('menu'); 
@@ -103,11 +117,14 @@
           useEffect(() => {
             const savedContact = localStorage.getItem('banhMiOngKoiContact');
             if (savedContact) setContact(savedContact);
+            
+            // ===== START: NÂNG CẤP LƯU TRẠNG THÁI ĐƠN HÀNG =====
             const savedOrder = localStorage.getItem('banhMiOngKoiLastOrder');
             if (savedOrder) {
                 setLastOrder(JSON.parse(savedOrder));
                 setView('thankyou');
             }
+            // ===== END: NÂNG CẤP LƯU TRẠNG THÁI ĐƠN HÀNG =====
           }, []);
 
           useEffect(() => {
@@ -129,6 +146,24 @@
             const loadingTimeout = setTimeout(() => setLoading(false), 8000);
             return () => { unsubscribers.forEach(unsub => unsub()); clearTimeout(loadingTimeout); };
           }, []);
+
+          // ===== START: NÂNG CẤP THEO DÕI TRẠNG THÁI REALTIME =====
+          useEffect(() => {
+            if (lastOrder && lastOrder.id) {
+                const orderRef = doc(db, "orders", lastOrder.id);
+                const unsubscribe = onSnapshot(orderRef, (doc) => {
+                    if (doc.exists()) {
+                        const updatedOrder = { id: doc.id, ...doc.data() };
+                        setLastOrder(updatedOrder);
+                        // Cập nhật lại localStorage nếu trạng thái thay đổi
+                        localStorage.setItem('banhMiOngKoiLastOrder', JSON.stringify(updatedOrder));
+                    }
+                });
+                // Dọn dẹp listener khi component unmount hoặc khi đặt đơn mới
+                return () => unsubscribe();
+            }
+          }, [lastOrder?.id]); // Chỉ chạy lại khi ID của đơn hàng cuối cùng thay đổi
+          // ===== END: NÂNG CẤP THEO DÕI TRẠNG THÁI REALTIME =====
 
           const total = useMemo(() => cart.reduce((s, i) => s + i.qty * i.price, 0), [cart]);
           const displayMenu = useMemo(() => {
@@ -189,11 +224,13 @@
               const value = e.target.value.replace(/\D/g, '');
               setContact(value.slice(0, 10));
           };
-
+          
+          // ===== START: NÂNG CẤP NÚT ĐẶT ĐƠN MỚI =====
           const handleNewOrderClick = () => {
             localStorage.removeItem('banhMiOngKoiLastOrder');
             setView('menu');
           };
+          // ===== END: NÂNG CẤP NÚT ĐẶT ĐƠN MỚI =====
 
           if (loading) {
               return (
