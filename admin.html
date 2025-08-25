@@ -4,13 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trang Quản Trị - Bánh Mì Ông Kòi</title>
-    <!-- Tải Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Tải React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Tải Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         window.firebaseApp = { initializeApp };
@@ -24,16 +21,11 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useEffect, useMemo, useState, useCallback, useRef } = React;
+        const { useEffect, useMemo, useState, useRef } = React;
         
         const { initializeApp } = window.firebaseApp;
-        const { 
-            getFirestore, collection, onSnapshot, 
-            addDoc, deleteDoc, doc, setDoc, updateDoc,
-            query, orderBy
-        } = window.firebaseFirestore;
+        const { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, updateDoc, query, orderBy } = window.firebaseFirestore;
 
-        // --- Vui lòng thay thế bằng cấu hình Firebase của bạn ---
         const firebaseConfig = {
             apiKey: "AIzaSyApIFFzjvfyGusxNkwTapK6H7_uIILZa9g",
             authDomain: "banh-mi-ong-koi.firebaseapp.com",
@@ -49,7 +41,6 @@
         const BRAND_COLOR = "#fc6806";
 
         // ===== Icon Components (SVG) =====
-        const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>;
         const NoteIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-1.5 text-gray-400"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>;
         const StarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
         const PinIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1"><path d="M12 17v5"/><path d="M15 9.34V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12l3-3h5.34"/><path d="m15 9.34 5.5 5.5"/><path d="m20.5 14.84-5.5-5.5"/><path d="M18 22h4v-4"/></svg>;
@@ -57,154 +48,129 @@
         const ArrowDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>;
         const UploadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>;
         const Trash2Icon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
-
+        const EditIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-1"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>;
+        const OrdersIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-6 w-6 mb-1 ${className}`}><path d="M7 21h10"/><path d="M12 3v14"/><path d="M12 3a9 9 0 0 0-9 9"/><path d="M12 3a9 9 0 0 1 9 9"/><path d="m5 13 1.6-1.6c.2-.2.3-.4.3-.7V9c0-.6.4-1 1-1h8c.6 0 1 .4 1 1v1.8c0 .2.1.5.3.7L19 13"/></svg>;
+        const MenuIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-6 w-6 mb-1 ${className}`}><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 12h6"/></svg>;
+        const StatsIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-6 w-6 mb-1 ${className}`}><path d="M3 3v18h18"/><path d="M7 12v4h4v-4Z"/><path d="M15 8v8h4V8Z"/></svg>;
+        
         // ===== Custom UI Components =====
         const Button = ({ children, className, variant = 'default', size = 'default', ...props }) => {
           const baseClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:opacity-50 disabled:pointer-events-none";
-          const variants = {
-            default: `bg-[${BRAND_COLOR}] text-white hover:bg-opacity-90`,
-            destructive: "bg-red-600 text-white hover:bg-red-600/90",
-            outline: "border border-gray-300 bg-transparent hover:bg-neutral-100",
-          };
+          const variants = { default: `bg-[${BRAND_COLOR}] text-white hover:bg-opacity-90`, destructive: "bg-red-600 text-white hover:bg-red-600/90", outline: "border border-gray-300 bg-transparent hover:bg-neutral-100" };
           const sizes = { default: "h-10 py-2 px-4", sm: "h-9 px-3 rounded-md", icon: "h-10 w-10" };
           return <button className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>{children}</button>;
         };
         const Card = ({ children, className, ...props }) => <div className={`rounded-xl border bg-white text-neutral-950 shadow-sm ${className}`} {...props}>{children}</div>;
         const CardContent = ({ children, className, ...props }) => <div className={`p-3 ${className}`} {...props}>{children}</div>;
         const Input = ({ className, ...props }) => <input className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-400 ${className}`} {...props} />;
+        const Textarea = ({ className, ...props }) => <textarea className={`flex min-h-[80px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-400 ${className}`} {...props} />;
         const Select = ({ children, className, ...props }) => <select className={`flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`} {...props}>{children}</select>;
         const SelectItem = ({ children, ...props }) => <option {...props}>{children}</option>;
         
-        // ===== Utils & Audio =====
         const vnd = (n) => n.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
         const playNotificationSound = () => {
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
+                oscillator.connect(gainNode); gainNode.connect(audioContext.destination);
                 gainNode.gain.setValueAtTime(0, audioContext.currentTime);
                 gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.05);
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+                oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
                 oscillator.start(audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
                 oscillator.stop(audioContext.currentTime + 0.5);
-            } catch (error) {
-                console.error("Could not play notification sound:", error);
-            }
+            } catch (error) { console.error("Could not play sound:", error); }
         };
 
         function App() {
-          // --- MẬT KHẨU TẠM THỜI TẮT ---
-          // Để bật lại, đổi "true" thành "false" và bỏ comment phần "HỎI MẬT KHẨU"
           const [isAuthenticated, setIsAuthenticated] = useState(true);
-
-          // State management for admin page
           const [menu, setMenu] = useState([]);
           const [categories, setCategories] = useState([]);
           const [orders, setOrders] = useState([]);
           const [storeStatus, setStoreStatus] = useState({ isOpen: true });
           const [loading, setLoading] = useState(true);
           const [adminTab, setAdminTab] = useState("orders");
-          const [newItem, setNewItem] = useState({ name: "", price: "", compareAtPrice: "", photo: "", category: "" });
+          const [newItem, setNewItem] = useState({ name: "", price: "", compareAtPrice: "", photo: "", category: "", description: "" });
           const [newCategory, setNewCategory] = useState("");
           const [itemToDelete, setItemToDelete] = useState(null);
           const [categoryToDelete, setCategoryToDelete] = useState(null);
+          const [editingItem, setEditingItem] = useState(null);
+          const [statsPeriod, setStatsPeriod] = useState('today');
           
           const isInitialLoad = useRef(true);
 
-          /*
-          // --- HỎI MẬT KHẨU KHI VÀO TRANG ---
-          // Bỏ comment khối này để bật lại mật khẩu
-          const ADMIN_PASSWORD = "admin"; 
           useEffect(() => {
-            if (!isAuthenticated) {
-                const pass = prompt("Vui lòng nhập mật khẩu quản trị:");
-                if (pass === ADMIN_PASSWORD) {
-                    setIsAuthenticated(true);
-                } else {
-                    document.getElementById('root').innerHTML = `<div style="text-align: center; padding-top: 50px; font-family: sans-serif; color: #dc2626;"><h1>TRUY CẬP BỊ TỪ CHỐI</h1><p>Mật khẩu không đúng.</p></div>`;
-                }
-            }
-          }, []);
-          */
-
-          // Data fetching from Firebase
-          useEffect(() => {
-            if (!isAuthenticated) return; // Không tải dữ liệu nếu chưa xác thực
-
+            if (!isAuthenticated) return;
             const unsubscribers = [];
-            
             const menuQuery = query(collection(db, "menu"), orderBy("order", "asc"));
             unsubscribers.push(onSnapshot(menuQuery, (snapshot) => {
                 setMenu(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                 setLoading(false);
             }));
-
             const categoriesQuery = query(collection(db, "categories"), orderBy("name", "asc"));
             unsubscribers.push(onSnapshot(categoriesQuery, (snapshot) => {
                 const catData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setCategories(catData);
-                if (newItem.category === "" && catData.length > 0) {
-                    setNewItem(prev => ({ ...prev, category: catData[0].name }));
-                }
+                if (newItem.category === "" && catData.length > 0) setNewItem(prev => ({ ...prev, category: catData[0].name }));
             }));
-
             const ordersQuery = query(collection(db, "orders"), orderBy("createdAt", "desc"));
             unsubscribers.push(onSnapshot(ordersQuery, (snapshot) => {
                 const newOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (isInitialLoad.current) {
-                    isInitialLoad.current = false;
-                } else if (newOrders.length > orders.length) {
-                    playNotificationSound();
-                }
+                if (!isInitialLoad.current && newOrders.length > orders.length) playNotificationSound();
+                isInitialLoad.current = false;
                 setOrders(newOrders);
             }));
-
             const storeStatusRef = doc(db, "settings", "storeStatus");
-            unsubscribers.push(onSnapshot(storeStatusRef, (doc) => {
-                if (doc.exists()) {
-                    setStoreStatus(doc.data());
-                } else {
-                    setDoc(doc.ref, { isOpen: true });
-                }
-            }));
-
+            unsubscribers.push(onSnapshot(storeStatusRef, (doc) => doc.exists() ? setStoreStatus(doc.data()) : setDoc(doc.ref, { isOpen: true })));
             return () => unsubscribers.forEach(unsub => unsub());
-          }, [isAuthenticated]); // Phụ thuộc vào isAuthenticated
+          }, [isAuthenticated]);
 
-          // Memoized calculations
           const pendingOrderCount = useMemo(() => orders.filter(o => o.status === 'pending').length, [orders]);
 
-          // Admin functions
-          const updateOrderStatus = async (orderId, status) => {
-              try {
-                  await updateDoc(doc(db, "orders", orderId), { status });
-              } catch (error) {
-                  console.error("Error updating order status: ", error);
-                  alert("Lỗi cập nhật trạng thái đơn hàng.");
-              }
-          };
+          const statistics = useMemo(() => {
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1))).setHours(0, 0, 0, 0);
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+            const filteredOrders = orders.filter(order => {
+                if (statsPeriod === 'today') return order.createdAt >= startOfToday;
+                if (statsPeriod === 'week') return order.createdAt >= startOfWeek;
+                if (statsPeriod === 'month') return order.createdAt >= startOfMonth;
+                return true;
+            });
+
+            const totalRevenue = filteredOrders.filter(o => o.status === 'completed').reduce((sum, order) => sum + order.total, 0);
+            const totalOrders = filteredOrders.length;
+            const itemCounts = filteredOrders.reduce((acc, order) => {
+                if(order.status !== 'canceled') {
+                    order.items.forEach(item => { acc[item.name] = (acc[item.name] || 0) + item.qty; });
+                }
+                return acc;
+            }, {});
+            const popularItems = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            return { totalRevenue, totalOrders, popularItems };
+          }, [orders, statsPeriod]);
+
+          const updateOrderStatus = async (orderId, status) => { try { await updateDoc(doc(db, "orders", orderId), { status }); } catch (e) { alert("Lỗi cập nhật đơn hàng."); } };
           const handleAddNewItem = async () => {
               if(!newItem.name.trim() || newItem.price === '' || !newItem.category) return;
               try {
-                  const newItemData = { 
-                      name: newItem.name.trim(), 
-                      price: Number(newItem.price), 
-                      compareAtPrice: newItem.compareAtPrice === '' ? 0 : Number(newItem.compareAtPrice), 
-                      available: true, 
-                      category: newItem.category, 
-                      photo: newItem.photo || `https://placehold.co/500x400/cccccc/ffffff?text=No+Image`,
-                      isPromo: false, bestSeller: false, order: menu.length 
-                  };
+                  const newItemData = { name: newItem.name.trim(), price: Number(newItem.price), compareAtPrice: newItem.compareAtPrice === '' ? 0 : Number(newItem.compareAtPrice), description: newItem.description.trim(), available: true, category: newItem.category, photo: newItem.photo || `https://placehold.co/500x400/cccccc/ffffff?text=No+Image`, isPromo: false, bestSeller: false, order: menu.length };
                   await addDoc(collection(db, "menu"), newItemData);
-                  setNewItem({ name: "", price: "", compareAtPrice: "", photo: "", category: newItem.category });
-              } catch (error) {
-                  console.error("Error adding new item: ", error);
-                  alert("Lỗi khi thêm món mới.");
-              }
+                  setNewItem({ name: "", price: "", compareAtPrice: "", photo: "", category: newItem.category, description: "" });
+              } catch (e) { alert("Lỗi khi thêm món."); }
+          };
+          const handleUpdateItem = async () => {
+              if (!editingItem || !editingItem.id) return;
+              try {
+                  const { id, ...dataToUpdate } = editingItem;
+                  dataToUpdate.price = Number(dataToUpdate.price);
+                  dataToUpdate.compareAtPrice = dataToUpdate.compareAtPrice === '' ? 0 : Number(dataToUpdate.compareAtPrice);
+                  await updateDoc(doc(db, "menu", id), dataToUpdate);
+                  setEditingItem(null);
+              } catch (e) { alert("Lỗi khi cập nhật món."); }
           };
           const handleDeleteItem = async () => {
               if (!itemToDelete) return;
@@ -212,73 +178,38 @@
                   const deletedItemOrder = itemToDelete.order;
                   await deleteDoc(doc(db, "menu", itemToDelete.id));
                   const itemsToUpdate = menu.filter(item => item.order > deletedItemOrder);
-                  const updates = itemsToUpdate.map(item => 
-                      updateDoc(doc(db, "menu", item.id), { order: item.order - 1 })
-                  );
+                  const updates = itemsToUpdate.map(item => updateDoc(doc(db, "menu", item.id), { order: item.order - 1 }));
                   await Promise.all(updates);
                   setItemToDelete(null);
-              } catch (error) {
-                  console.error("Error deleting item: ", error);
-                  alert("Lỗi khi xóa món.");
-              }
+              } catch (e) { alert("Lỗi khi xóa món."); }
           };
           const moveItem = async (index, direction) => {
               const newIndex = direction === 'up' ? index - 1 : index + 1;
               if (newIndex < 0 || newIndex >= menu.length) return;
-              const itemA = menu[index];
-              const itemB = menu[newIndex];
-              const updateA = updateDoc(doc(db, "menu", itemA.id), { order: itemB.order });
-              const updateB = updateDoc(doc(db, "menu", itemB.id), { order: itemA.order });
-              try {
-                  await Promise.all([updateA, updateB]);
-              } catch (error) {
-                  console.error("Error moving item: ", error);
-                  alert("Lỗi khi sắp xếp món.");
-              }
+              const itemA = menu[index]; const itemB = menu[newIndex];
+              try { await Promise.all([updateDoc(doc(db, "menu", itemA.id), { order: itemB.order }), updateDoc(doc(db, "menu", itemB.id), { order: itemA.order })]); } 
+              catch (e) { alert("Lỗi khi sắp xếp món."); }
           };
-          const updateItem = async (id, data) => {
-              try {
-                  await updateDoc(doc(db, "menu", id), data);
-              } catch (error) {
-                  console.error("Error updating item: ", error);
-                  alert("Lỗi khi cập nhật món.");
-              }
-          };
+          const updateItemProperty = async (id, data) => { try { await updateDoc(doc(db, "menu", id), data); } catch (e) { alert("Lỗi khi cập nhật món."); } };
           const handleAddCategory = async () => {
               if (!newCategory.trim() || categories.find(c => c.name === newCategory.trim())) return;
-              try {
-                  await addDoc(collection(db, "categories"), { name: newCategory.trim() });
-                  setNewCategory("");
-              } catch (error) {
-                  console.error("Error adding category: ", error);
-                  alert("Lỗi khi thêm danh mục.");
-              }
+              try { await addDoc(collection(db, "categories"), { name: newCategory.trim() }); setNewCategory(""); } 
+              catch (e) { alert("Lỗi khi thêm danh mục."); }
           };
           const handleDeleteCategory = async () => {
               if (!categoryToDelete) return;
-              try {
-                  await deleteDoc(doc(db, "categories", categoryToDelete.id));
-                  setCategoryToDelete(null);
-              } catch (error) {
-                  console.error("Error deleting category: ", error);
-                  alert("Lỗi khi xóa danh mục.");
-              }
+              try { await deleteDoc(doc(db, "categories", categoryToDelete.id)); setCategoryToDelete(null); } 
+              catch (e) { alert("Lỗi khi xóa danh mục."); }
           };
-          const toggleStoreStatus = async () => {
-              try {
-                  await updateDoc(doc(db, "settings", "storeStatus"), { isOpen: !storeStatus.isOpen });
-              } catch (error) {
-                  console.error("Error toggling store status: ", error);
-                  alert("Lỗi khi thay đổi trạng thái cửa hàng.");
-              }
-          };
-
-          // Helper functions
-          const handleImageUpload = (event) => {
+          const toggleStoreStatus = async () => { try { await updateDoc(doc(db, "settings", "storeStatus"), { isOpen: !storeStatus.isOpen }); } catch (e) { alert("Lỗi khi đổi trạng thái cửa hàng."); } };
+          const handleImageUpload = (event, target) => {
             const file = event.target.files?.[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onloadend = () => { setNewItem({ ...newItem, photo: reader.result }); };
+                reader.onloadend = () => {
+                    if (target === 'new') setNewItem({ ...newItem, photo: reader.result });
+                    if (target === 'edit') setEditingItem({ ...editingItem, photo: reader.result });
+                };
                 reader.readAsDataURL(file);
             }
           };
@@ -292,11 +223,6 @@
               }
           };
 
-          if (!isAuthenticated) {
-              // Vẫn giữ lại dòng này phòng trường hợp bật lại mật khẩu
-              return null; 
-          }
-
           if (loading) {
               return <div className="min-h-screen flex items-center justify-center">Đang tải dữ liệu quản trị...</div>
           }
@@ -304,70 +230,77 @@
           return (
             <div className="min-h-screen">
               <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
-                <div className="max-w-md mx-auto px-4 py-3">
-                  <h1 className="font-bold text-lg text-center">TRANG QUẢN TRỊ</h1>
-                </div>
+                <div className="max-w-md mx-auto px-4 py-3"><h1 className="font-bold text-lg text-center">TRANG QUẢN TRỊ</h1></div>
               </header>
 
-              <main className="max-w-md mx-auto px-4 pb-28">
-                {/* --- PHẦN GIAO DIỆN CỦA ADMIN --- */}
-                <div>
-                    <div className="grid grid-cols-2 gap-2 my-4 p-1 bg-neutral-200 rounded-lg">
-                        <button onClick={() => setAdminTab('orders')} className={`py-2 rounded-md text-sm font-semibold relative ${adminTab === 'orders' ? 'bg-white shadow' : ''}`}>
-                            Đơn hàng
-                            {pendingOrderCount > 0 && <span className="absolute top-1 right-2 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{pendingOrderCount}</span>}
-                        </button>
-                        <button onClick={() => setAdminTab('menu')} className={`py-2 rounded-md text-sm font-semibold ${adminTab === 'menu' ? 'bg-white shadow' : ''}`}>Thực đơn & Cài đặt</button>
-                    </div>
-
-                    {adminTab === 'orders' && (
+              <main className="max-w-md mx-auto px-4 pb-24"> 
+                {adminTab === 'orders' && (
+                    <section>
+                        <h2 className="text-xl font-bold my-4">Đơn hàng</h2>
+                        <div className="space-y-3">{orders.length === 0 && <p className="text-sm text-neutral-500 text-center py-10">Chưa có đơn hàng nào.</p>}{orders.map(order => { const statusDisplay = getStatusDisplay(order.status); return (<Card key={order.id}><CardContent><div className="flex justify-between items-start"><div className="flex-1"><div className="font-bold">#{order.id.slice(-6)} - <span className="font-normal">{order.contact}</span></div><div className="text-xs text-neutral-500">{new Date(order.createdAt).toLocaleString('vi-VN')}</div></div><div className="text-right flex-shrink-0 ml-4"><div className="font-bold text-lg" style={{color: BRAND_COLOR}}>{vnd(order.total)}</div><div className={`text-xs font-semibold px-2 py-1 rounded-full mt-1 inline-block ${statusDisplay.className}`}>{statusDisplay.text}</div></div></div><div className="text-xs mt-2">Thanh toán: <span className="font-semibold">{order.payment === 'TIENMAT' ? 'Tiền mặt' : 'Chuyển khoản'}</span></div><div className="border-t my-2"></div><ul className="text-sm space-y-2">{order.items.map(item => <li key={item.id} className="flex flex-col"><span className="font-medium">{item.qty} x {item.name}</span>{item.note && (<div className="flex items-center text-xs text-blue-600 pl-4"><NoteIcon /><span>{item.note}</span></div>)}</li>)}</ul>{order.status === 'pending' && (<div className="flex gap-2 mt-3"><Button size="sm" className="flex-1" onClick={() => updateOrderStatus(order.id, 'processing')}>Xác nhận</Button><Button size="sm" variant="destructive" className="flex-1" onClick={() => updateOrderStatus(order.id, 'canceled')}>Hủy đơn</Button></div>)}{order.status === 'processing' && (<div className="flex gap-2 mt-3"><Button size="sm" className="flex-1" onClick={() => updateOrderStatus(order.id, 'completed')}>Hoàn thành</Button></div>)}</CardContent></Card>)})}</div>
+                    </section>
+                )}
+                {adminTab === 'menu' && (
+                    <div className="space-y-8 mt-4">
                         <section>
-                            <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">{orders.length === 0 && <p className="text-sm text-neutral-500 text-center py-10">Chưa có đơn hàng nào.</p>}{orders.map(order => { const statusDisplay = getStatusDisplay(order.status); return (<Card key={order.id}><CardContent><div className="flex justify-between items-start"><div className="flex-1"><div className="font-bold">#{order.id.slice(-6)} - <span className="font-normal">{order.contact}</span></div><div className="text-xs text-neutral-500">{new Date(order.createdAt).toLocaleString('vi-VN')}</div></div><div className="text-right flex-shrink-0 ml-4"><div className="font-bold text-lg" style={{color: BRAND_COLOR}}>{vnd(order.total)}</div><div className={`text-xs font-semibold px-2 py-1 rounded-full mt-1 inline-block ${statusDisplay.className}`}>{statusDisplay.text}</div></div></div><div className="text-xs mt-2">Thanh toán: <span className="font-semibold">{order.payment === 'TIENMAT' ? 'Tiền mặt' : 'Chuyển khoản'}</span></div><div className="border-t my-2"></div><ul className="text-sm space-y-2">{order.items.map(item => <li key={item.id} className="flex flex-col"><span className="font-medium">{item.qty} x {item.name}</span>{item.note && (<div className="flex items-center text-xs text-blue-600 pl-4"><NoteIcon /><span>{item.note}</span></div>)}</li>)}</ul>{order.status === 'pending' && (<div className="flex gap-2 mt-3"><Button size="sm" className="flex-1" onClick={() => updateOrderStatus(order.id, 'processing')}>Xác nhận</Button><Button size="sm" variant="destructive" className="flex-1" onClick={() => updateOrderStatus(order.id, 'canceled')}>Hủy đơn</Button></div>)}{order.status === 'processing' && (<div className="flex gap-2 mt-3"><Button size="sm" className="flex-1" onClick={() => updateOrderStatus(order.id, 'completed')}>Hoàn thành</Button></div>)}</CardContent></Card>)})}</div>
+                            <h2 className="text-xl font-bold mb-4">Quản lý Cửa hàng & Thực đơn</h2>
+                            <div className="space-y-4">
+                                <Card><CardContent><h3 className="text-base font-semibold mb-3">Tình trạng Cửa hàng</h3><div className="flex items-center justify-between"><span className={`font-bold ${storeStatus.isOpen ? 'text-green-600' : 'text-red-600'}`}>{storeStatus.isOpen ? 'ĐANG MỞ CỬA' : 'ĐANG TẠM ĐÓNG CỬA'}</span><button onClick={toggleStoreStatus} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${storeStatus.isOpen ? 'bg-green-500' : 'bg-gray-300'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${storeStatus.isOpen ? 'translate-x-6' : 'translate-x-1'}`}/></button></div></CardContent></Card>
+                                <Card><CardContent><h3 className="text-base font-semibold mb-3">Thêm món mới</h3><div className="space-y-3"><Input placeholder="Tên món" value={newItem.name} onChange={e=>setNewItem({...newItem, name: e.target.value})} /><Textarea placeholder="Mô tả món ăn" value={newItem.description} onChange={e=>setNewItem({...newItem, description: e.target.value})} /><div className="grid grid-cols-2 gap-3"><Input placeholder="Giá bán (VND)" type="number" value={newItem.price} onChange={e=>setNewItem({...newItem, price: e.target.value})} /><Input placeholder="Giá gốc (để gạch)" type="number" value={newItem.compareAtPrice} onChange={e=>setNewItem({...newItem, compareAtPrice: e.target.value})} /></div><div className="flex items-center gap-3"><label className="flex-1 cursor-pointer"><div className="h-24 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-neutral-500 hover:bg-neutral-50 transition-colors"><UploadIcon /><span className="text-xs mt-1">Tải ảnh lên</span></div><input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'new')} /></label>{newItem.photo && (<div className="w-24 h-24 rounded-lg overflow-hidden border flex-shrink-0"><img src={newItem.photo} alt="Xem trước" className="w-full h-full object-cover" /></div>)}</div><Select value={newItem.category} onChange={e=>setNewItem({...newItem, category: e.target.value})}><option value="" disabled>-- Chọn danh mục --</option>{categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</Select><Button className="rounded-xl w-full" onClick={handleAddNewItem}>Thêm món vào thực đơn</Button></div></CardContent></Card>
+                                 <Card><CardContent><h3 className="text-base font-semibold mb-3">Quản lý Danh mục</h3><div className="space-y-2">{categories.map(cat => (<div key={cat.id} className="flex items-center justify-between bg-white p-2 rounded-lg border"><span className="text-sm">{cat.name}</span><Button size="sm" variant="destructive" className="text-xs" onClick={() => setCategoryToDelete(cat)}>Xóa</Button></div>))}</div><div className="flex gap-2 mt-3"><Input placeholder="Tên danh mục mới" value={newCategory} onChange={e => setNewCategory(e.target.value)} /><Button onClick={() => handleAddCategory(newCategory)}>Thêm</Button></div></CardContent></Card>
+                            </div>
                         </section>
-                    )}
-
-                    {adminTab === 'menu' && (
-                        <div className="space-y-8">
-                            <section>
-                                <h3 className="text-base font-semibold mb-3">Tình trạng Cửa hàng</h3>
-                                <div className="flex items-center justify-between bg-white p-3 rounded-lg border">
-                                    <span className={`font-bold ${storeStatus.isOpen ? 'text-green-600' : 'text-red-600'}`}>
-                                        {storeStatus.isOpen ? 'ĐANG MỞ CỬA' : 'ĐANG TẠM ĐÓNG CỬA'}
-                                    </span>
-                                    <button onClick={toggleStoreStatus} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${storeStatus.isOpen ? 'bg-green-500' : 'bg-gray-300'}`}>
-                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${storeStatus.isOpen ? 'translate-x-6' : 'translate-x-1'}`}/>
-                                    </button>
-                                </div>
-                            </section>
-                            <section>
-                                <h3 className="text-base font-semibold mb-2">Thống kê nhanh</h3>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <Card><CardContent className="text-center"><div className="text-xs text-neutral-500">Doanh thu</div><div className="text-lg font-bold" style={{ color: BRAND_COLOR }}>{vnd(orders.filter(o=>o.status==='completed').reduce((s,o)=>s+o.total,0))}</div></CardContent></Card>
-                                    <Card><CardContent className="text-center"><div className="text-xs text-neutral-500">Số đơn</div><div className="text-lg font-bold">{orders.length}</div></CardContent></Card>
-                                    <Card><CardContent className="text-center"><div className="text-xs text-neutral-500">Đang chờ</div><div className="text-lg font-bold">{pendingOrderCount}</div></CardContent></Card>
-                                </div>
-                            </section>
-                            <section>
-                                <h3 className="text-base font-semibold mb-3">Thêm món mới</h3>
-                                <div className="grid grid-cols-2 gap-3"><Input className="col-span-2" placeholder="Tên món" value={newItem.name} onChange={e=>setNewItem({...newItem, name: e.target.value})} /><Input placeholder="Giá bán (VND)" type="number" value={newItem.price} onChange={e=>setNewItem({...newItem, price: e.target.value})} /><Input placeholder="Giá gốc (để gạch)" type="number" value={newItem.compareAtPrice} onChange={e=>setNewItem({...newItem, compareAtPrice: e.target.value})} /><div className="col-span-2 flex items-center gap-3"><label className="flex-1 cursor-pointer"><div className="h-24 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-neutral-500 hover:bg-neutral-50 transition-colors"><UploadIcon /><span className="text-xs mt-1">Tải ảnh lên</span></div><input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} /></label>{newItem.photo && (<div className="w-24 h-24 rounded-lg overflow-hidden border flex-shrink-0"><img src={newItem.photo} alt="Xem trước" className="w-full h-full object-cover" /></div>)}</div><Select className="col-span-2" value={newItem.category} onChange={e=>setNewItem({...newItem, category: e.target.value})}><option value="" disabled>-- Chọn danh mục --</option>{categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</Select><Button className="rounded-xl col-span-2" onClick={handleAddNewItem}>Thêm món vào thực đơn</Button></div>
-                            </section>
-                            <section>
-                                <h3 className="text-base font-semibold mb-3">Quản lý & Sắp xếp Thực đơn</h3>
-                                <div className="space-y-3">{menu.map((m, index) => (<Card key={m.id}><CardContent className="flex flex-col gap-3"><div className="flex items-start gap-3"><div className="flex flex-col items-center gap-2 pt-1"><Button size="sm" variant="outline" className="p-2" disabled={index === 0} onClick={() => moveItem(index, 'up')}><ArrowUpIcon /></Button><span className="font-bold text-lg">{index + 1}</span><Button size="sm" variant="outline" className="p-2" disabled={index === menu.length - 1} onClick={() => moveItem(index, 'down')}><ArrowDownIcon /></Button></div><img src={m.photo} alt={m.name} className="w-20 h-20 object-cover rounded-xl" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/><div className="flex-1"><div className="font-medium">{m.name}</div><div className="text-sm text-neutral-500">Danh mục: {m.category}</div><div className="text-sm">Giá: {vnd(m.price)} {m.compareAtPrice > 0 && <span className="text-neutral-400 line-through ml-1">{vnd(m.compareAtPrice)}</span>}</div></div></div><div className="grid grid-cols-4 gap-2"><Button size="sm" variant="outline" className="text-xs" onClick={()=> updateItem(m.id, { isPromo: !m.isPromo })}><PinIcon /> {m.isPromo ? 'Bỏ ghim' : 'Ghim'}</Button><Button size="sm" variant="outline" className="text-xs" onClick={()=> updateItem(m.id, { bestSeller: !m.bestSeller })}><StarIcon /> {m.bestSeller ? 'Bỏ Tag' : 'Bán chạy'}</Button><Button size="sm" variant="outline" className="text-xs" onClick={()=> updateItem(m.id, { available: !m.available })}>{m.available? 'Tắt món':'Bật món'}</Button><Button size="sm" variant="destructive" className="text-xs" onClick={() => setItemToDelete(m)}><Trash2Icon /> Xóa</Button></div></CardContent></Card>))}</div>
-                            </section>
-                            <section>
-                                <h3 className="text-base font-semibold mb-3">Quản lý Danh mục</h3>
-                                <div className="space-y-2">{categories.map(cat => (<div key={cat.id} className="flex items-center justify-between bg-white p-2 rounded-lg border"><span className="text-sm">{cat.name}</span><Button size="sm" variant="destructive" className="text-xs" onClick={() => setCategoryToDelete(cat)}>Xóa</Button></div>))}</div>
-                                <div className="flex gap-2 mt-3"><Input placeholder="Tên danh mục mới" value={newCategory} onChange={e => setNewCategory(e.target.value)} /><Button onClick={() => handleAddCategory(newCategory)}>Thêm</Button></div>
-                            </section>
-                            
-                            {/* Modal Windows */}
-                            {itemToDelete && (<div className="fixed inset-0 z-[60] flex items-center justify-center"><div className="absolute inset-0 bg-black/60" onClick={() => setItemToDelete(null)}></div><div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4"><h3 className="text-lg font-semibold">Xác nhận xóa món?</h3><p className="text-sm text-neutral-500 mt-1">Bạn có chắc muốn xóa món <span className="font-bold">"{itemToDelete.name}"</span>?</p><div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setItemToDelete(null)}>Hủy</Button><Button variant="destructive" onClick={handleDeleteItem}>Xác nhận xóa</Button></div></div></div>)}
-                            {categoryToDelete && (<div className="fixed inset-0 z-[60] flex items-center justify-center"><div className="absolute inset-0 bg-black/60" onClick={() => setCategoryToDelete(null)}></div><div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4"><h3 className="text-lg font-semibold">Xác nhận xóa danh mục?</h3><p className="text-sm text-neutral-500 mt-1">Bạn có chắc muốn xóa danh mục <span className="font-bold">"{categoryToDelete.name}"</span>?</p><div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setCategoryToDelete(null)}>Hủy</Button><Button variant="destructive" onClick={handleDeleteCategory}>Xác nhận xóa</Button></div></div></div>)}
+                        <section>
+                            <h3 className="text-base font-semibold mb-3">Danh sách Thực đơn</h3>
+                            <div className="space-y-3">{menu.map((m, index) => (<Card key={m.id}><CardContent className="flex flex-col gap-3"><div className="flex items-start gap-3"><div className="flex flex-col items-center gap-2 pt-1"><Button size="sm" variant="outline" className="p-2" disabled={index === 0} onClick={() => moveItem(index, 'up')}><ArrowUpIcon /></Button><span className="font-bold text-lg">{index + 1}</span><Button size="sm" variant="outline" className="p-2" disabled={index === menu.length - 1} onClick={() => moveItem(index, 'down')}><ArrowDownIcon /></Button></div><img src={m.photo} alt={m.name} className="w-20 h-20 object-cover rounded-xl" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/><div className="flex-1"><div className="font-medium">{m.name}</div><div className="text-sm text-neutral-500">Danh mục: {m.category}</div><div className="text-sm">Giá: {vnd(m.price)} {m.compareAtPrice > 0 && <span className="text-neutral-400 line-through ml-1">{vnd(m.compareAtPrice)}</span>}</div></div></div><div className="grid grid-cols-5 gap-2"><Button size="sm" variant="outline" className="text-xs" onClick={()=> setEditingItem(m)}><EditIcon /> Sửa</Button><Button size="sm" variant="outline" className="text-xs" onClick={()=> updateItemProperty(m.id, { isPromo: !m.isPromo })}><PinIcon /> {m.isPromo ? 'Bỏ ghim' : 'Ghim'}</Button><Button size="sm" variant="outline" className="text-xs" onClick={()=> updateItemProperty(m.id, { bestSeller: !m.bestSeller })}><StarIcon /> {m.bestSeller ? 'Bỏ Tag' : 'Bán chạy'}</Button><Button size="sm" variant="outline" className="text-xs" onClick={()=> updateItemProperty(m.id, { available: !m.available })}>{m.available? 'Tắt món':'Bật món'}</Button><Button size="sm" variant="destructive" className="text-xs" onClick={() => setItemToDelete(m)}><Trash2Icon /> Xóa</Button></div></CardContent></Card>))}</div>
+                        </section>
+                    </div>
+                )}
+                {adminTab === 'stats' && (
+                    <section className="space-y-6 mt-4">
+                         <h2 className="text-xl font-bold mb-4">Thống kê</h2>
+                        <div>
+                            <h3 className="text-base font-semibold mb-3">Xem theo thời gian</h3>
+                            <div className="grid grid-cols-3 gap-2 p-1 bg-neutral-200 rounded-lg">
+                                <button onClick={() => setStatsPeriod('today')} className={`py-2 rounded-md text-sm font-semibold ${statsPeriod === 'today' ? 'bg-white shadow' : ''}`}>Hôm nay</button>
+                                <button onClick={() => setStatsPeriod('week')} className={`py-2 rounded-md text-sm font-semibold ${statsPeriod === 'week' ? 'bg-white shadow' : ''}`}>Tuần này</button>
+                                <button onClick={() => setStatsPeriod('month')} className={`py-2 rounded-md text-sm font-semibold ${statsPeriod === 'month' ? 'bg-white shadow' : ''}`}>Tháng này</button>
+                            </div>
                         </div>
-                    )}
-                </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <Card><CardContent className="text-center"><div className="text-sm text-neutral-500">Doanh thu</div><div className="text-2xl font-bold mt-1" style={{ color: BRAND_COLOR }}>{vnd(statistics.totalRevenue)}</div></CardContent></Card>
+                            <Card><CardContent className="text-center"><div className="text-sm text-neutral-500">Tổng đơn</div><div className="text-2xl font-bold mt-1">{statistics.totalOrders}</div></CardContent></Card>
+                        </div>
+                        <div>
+                            <h3 className="text-base font-semibold mb-3">Món bán chạy nhất</h3>
+                            {statistics.popularItems.length > 0 ? (<div className="space-y-2">{statistics.popularItems.map(([name, count]) => (<Card key={name}><CardContent className="flex justify-between items-center p-3"><span className="font-medium text-sm">{name}</span><span className="text-sm text-neutral-600 font-semibold">{count} suất</span></CardContent></Card>))}</div>) : ( <p className="text-sm text-neutral-500 text-center py-5">Chưa có dữ liệu.</p> )}
+                        </div>
+                    </section>
+                )}
               </main>
+
+                <footer className="fixed bottom-0 left-0 right-0 h-20 bg-white border-t z-50">
+                    <div className="max-w-md mx-auto grid grid-cols-3 h-full">
+                        <button onClick={() => setAdminTab('orders')} className="relative flex flex-col items-center justify-center text-sm font-medium">
+                            <OrdersIcon className={adminTab === 'orders' ? `text-[${BRAND_COLOR}]` : 'text-gray-400'}/>
+                            <span className={adminTab === 'orders' ? `text-[${BRAND_COLOR}]` : 'text-gray-600'}>Đơn hàng</span>
+                            {pendingOrderCount > 0 && <span className="absolute top-2 right-6 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{pendingOrderCount}</span>}
+                        </button>
+                        <button onClick={() => setAdminTab('menu')} className="flex flex-col items-center justify-center text-sm font-medium">
+                            <MenuIcon className={adminTab === 'menu' ? `text-[${BRAND_COLOR}]` : 'text-gray-400'}/>
+                            <span className={adminTab === 'menu' ? `text-[${BRAND_COLOR}]` : 'text-gray-600'}>Thực đơn</span>
+                        </button>
+                        <button onClick={() => setAdminTab('stats')} className="flex flex-col items-center justify-center text-sm font-medium">
+                             <StatsIcon className={adminTab === 'stats' ? `text-[${BRAND_COLOR}]` : 'text-gray-400'}/>
+                            <span className={adminTab === 'stats' ? `text-[${BRAND_COLOR}]` : 'text-gray-600'}>Thống kê</span>
+                        </button>
+                    </div>
+                </footer>
+
+              {/* Modals */}
+              {editingItem && (<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"><div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4"><h3 className="text-lg font-semibold mb-4">Chỉnh sửa món ăn</h3><div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2"><Input placeholder="Tên món" value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} /><Textarea placeholder="Mô tả món ăn" value={editingItem.description} onChange={e => setEditingItem({...editingItem, description: e.target.value})} /><div className="grid grid-cols-2 gap-3"><Input placeholder="Giá bán (VND)" type="number" value={editingItem.price} onChange={e => setEditingItem({...editingItem, price: e.target.value})} /><Input placeholder="Giá gốc (để gạch)" type="number" value={editingItem.compareAtPrice} onChange={e => setEditingItem({...editingItem, compareAtPrice: e.target.value})} /></div><div className="flex items-center gap-3"><label className="flex-1 cursor-pointer"><div className="h-24 w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-neutral-500 hover:bg-neutral-50 transition-colors"><UploadIcon /><span className="text-xs mt-1">Đổi ảnh</span></div><input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'edit')} /></label>{editingItem.photo && (<div className="w-24 h-24 rounded-lg overflow-hidden border flex-shrink-0"><img src={editingItem.photo} alt="Xem trước" className="w-full h-full object-cover" /></div>)}</div><Select value={editingItem.category} onChange={e => setEditingItem({...editingItem, category: e.target.value})}>{categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</Select></div><div className="flex justify-end gap-2 mt-6"><Button variant="outline" onClick={() => setEditingItem(null)}>Hủy</Button><Button onClick={handleUpdateItem}>Lưu thay đổi</Button></div></div></div>)}
+              {itemToDelete && (<div className="fixed inset-0 z-[60] flex items-center justify-center"><div className="absolute inset-0 bg-black/60" onClick={() => setItemToDelete(null)}></div><div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4"><h3 className="text-lg font-semibold">Xác nhận xóa món?</h3><p className="text-sm text-neutral-500 mt-1">Bạn có chắc muốn xóa món <span className="font-bold">"{itemToDelete.name}"</span>?</p><div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setItemToDelete(null)}>Hủy</Button><Button variant="destructive" onClick={handleDeleteItem}>Xác nhận xóa</Button></div></div></div>)}
+              {categoryToDelete && (<div className="fixed inset-0 z-[60] flex items-center justify-center"><div className="absolute inset-0 bg-black/60" onClick={() => setCategoryToDelete(null)}></div><div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4"><h3 className="text-lg font-semibold">Xác nhận xóa danh mục?</h3><p className="text-sm text-neutral-500 mt-1">Bạn có chắc muốn xóa danh mục <span className="font-bold">"{categoryToDelete.name}"</span>?</p><div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setCategoryToDelete(null)}>Hủy</Button><Button variant="destructive" onClick={handleDeleteCategory}>Xác nhận xóa</Button></div></div></div>)}
             </div>
           );
         }
