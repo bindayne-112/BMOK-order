@@ -4,13 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bánh Mì Ông Kòi - Đặt Hàng</title>
-    <!-- Tải Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Tải React & Babel -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Tải Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         window.firebaseApp = { initializeApp };
@@ -20,30 +17,20 @@
         window.firebaseFirestore = { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, query, orderBy };
     </script>
     <style>
-        /* Ẩn thanh cuộn cho trình duyệt Webkit (Chrome, Safari) */
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-        /* Ẩn thanh cuộn cho Firefox */
-        .scrollbar-hide {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        html { scroll-behavior: smooth; }
     </style>
 </head>
-<body class="bg-neutral-50">
+<body class="bg-neutral-100">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useEffect, useMemo, useState, useCallback, useRef } = React;
+        const { useEffect, useMemo, useState, useRef } = React;
         
         const { initializeApp } = window.firebaseApp;
-        const { 
-            getFirestore, collection, onSnapshot, 
-            addDoc, doc, setDoc, query, orderBy
-        } = window.firebaseFirestore;
+        const { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, query, orderBy } = window.firebaseFirestore;
 
-        // --- Vui lòng thay thế bằng cấu hình Firebase của bạn ---
         const firebaseConfig = {
             apiKey: "AIzaSyApIFFzjvfyGusxNkwTapK6H7_uIILZa9g",
             authDomain: "banh-mi-ong-koi.firebaseapp.com",
@@ -62,28 +49,46 @@
         const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>;
         const MinusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="5" x2="19" y1="12" y2="12"/></svg>;
         const NoteIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-1.5 text-gray-400"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>;
-        const ArrowRightIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>;
+        const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-16 w-16 text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+        const PhoneIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 mr-2 ${className}`}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>;
+        const MapPinIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 mr-2 ${className}`}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
 
         // ===== Custom UI Components =====
         const Button = ({ children, className, variant = 'default', size = 'default', ...props }) => {
           const baseClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:opacity-50 disabled:pointer-events-none";
-          const variants = {
-            default: `bg-[${BRAND_COLOR}] text-white hover:bg-opacity-90`,
-            outline: "border border-gray-300 bg-transparent hover:bg-neutral-100",
-          };
+          const variants = { default: `bg-[${BRAND_COLOR}] text-white hover:bg-opacity-90`, outline: "border border-gray-300 bg-transparent hover:bg-neutral-100" };
           const sizes = { default: "h-10 py-2 px-4", sm: "h-9 px-3 rounded-md", icon: "h-10 w-10" };
           return <button className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>{children}</button>;
         };
         const Card = ({ children, className, ...props }) => <div className={`rounded-xl border bg-white text-neutral-950 shadow-sm ${className}`} {...props}>{children}</div>;
-        const CardContent = ({ children, className, ...props }) => <div className={`p-3 ${className}`} {...props}>{children}</div>;
         const Input = ({ className, ...props }) => <input className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-400 ${className}`} {...props} />;
         const Textarea = ({ className, ...props }) => <textarea className={`flex min-h-[60px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-400 ${className}`} {...props} />;
         
-        // ===== Utils =====
         const vnd = (n) => n.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
 
+        const ThankYouPage = ({ order, onNewOrder }) => {
+            if (!order) return null;
+            return (
+                <div className="flex flex-col items-center justify-center text-center min-h-[70vh] px-4">
+                    <CheckCircleIcon />
+                    <h2 className="text-2xl font-bold mt-4">Đặt hàng thành công!</h2>
+                    <p className="text-neutral-600 mt-2">Cảm ơn bạn đã tin tưởng. Đơn hàng của bạn đang được chuẩn bị.</p>
+                    <div className="w-full max-w-sm mt-8 text-left border rounded-lg p-4 bg-white">
+                        <h3 className="font-semibold border-b pb-2">Tóm tắt đơn hàng #{order.id.slice(-6)}</h3>
+                        <ul className="text-sm space-y-2 py-3">
+                            {order.items.map(item => (<li key={item.id} className="flex justify-between"><span>{item.qty} x {item.name}</span><span className="font-medium">{vnd(item.qty * item.price)}</span></li>))}
+                        </ul>
+                        <div className="border-t pt-2 flex justify-between font-bold"><span>Tổng cộng</span><span>{vnd(order.total)}</span></div>
+                        <div className="mt-2 text-sm">Trạng thái: <span className="font-semibold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">Đang chờ xác nhận</span></div>
+                    </div>
+                    <Button className="w-full max-w-sm mt-8" onClick={onNewOrder}>Đặt đơn hàng mới</Button>
+                </div>
+            );
+        };
+
         function App() {
-          // State management for customer page
+          const [view, setView] = useState('menu'); 
+          const [lastOrder, setLastOrder] = useState(null); 
           const [menu, setMenu] = useState([]);
           const [categories, setCategories] = useState([]);
           const [storeStatus, setStoreStatus] = useState({ isOpen: true });
@@ -92,56 +97,65 @@
           const [contact, setContact] = useState("");
           const [paymentMethod, setPaymentMethod] = useState("TIENMAT");
           const [openCart, setOpenCart] = useState(false);
+          const [activeCategory, setActiveCategory] = useState('');
+          const categoryRefs = useRef({});
 
-          // Data fetching from Firebase
           useEffect(() => {
-            const unsubscribers = [];
-            
-            const menuQuery = query(collection(db, "menu"), orderBy("order", "asc"));
-            unsubscribers.push(onSnapshot(menuQuery, (snapshot) => {
-                setMenu(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                setLoading(false);
-            }, (error) => console.error("Error fetching menu:", error)));
-
-            const categoriesQuery = query(collection(db, "categories"), orderBy("name", "asc"));
-            unsubscribers.push(onSnapshot(categoriesQuery, (snapshot) => {
-                setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            }, (error) => console.error("Error fetching categories:", error)));
-
-            const storeStatusRef = doc(db, "settings", "storeStatus");
-            unsubscribers.push(onSnapshot(storeStatusRef, (doc) => {
-                if (doc.exists()) {
-                    setStoreStatus(doc.data());
-                } else {
-                    setDoc(doc.ref, { isOpen: true }).catch(error => console.error("Error setting initial store status:", error));
-                }
-            }, (error) => console.error("Error fetching store status:", error)));
-
-            return () => unsubscribers.forEach(unsub => unsub());
+            const savedContact = localStorage.getItem('banhMiOngKoiContact');
+            if (savedContact) setContact(savedContact);
+            const savedOrder = localStorage.getItem('banhMiOngKoiLastOrder');
+            if (savedOrder) {
+                setLastOrder(JSON.parse(savedOrder));
+                setView('thankyou');
+            }
           }, []);
 
-          // Memoized calculations
+          useEffect(() => {
+            const unsubscribers = [];
+            const menuQuery = query(collection(db, "menu"), orderBy("order", "asc"));
+            unsubscribers.push(onSnapshot(menuQuery, (snapshot) => {
+                const menuData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setMenu(menuData);
+                if (menuData.length > 0) setLoading(false);
+            }));
+            const categoriesQuery = query(collection(db, "categories"), orderBy("name", "asc"));
+            unsubscribers.push(onSnapshot(categoriesQuery, (snapshot) => {
+                const catData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setCategories(catData);
+                if(catData.length > 0 && activeCategory === '') setActiveCategory(catData[0].name);
+            }));
+            const storeStatusRef = doc(db, "settings", "storeStatus");
+            unsubscribers.push(onSnapshot(storeStatusRef, (doc) => doc.exists() ? setStoreStatus(doc.data()) : setDoc(doc.ref, { isOpen: true })));
+            const loadingTimeout = setTimeout(() => setLoading(false), 8000);
+            return () => { unsubscribers.forEach(unsub => unsub()); clearTimeout(loadingTimeout); };
+          }, []);
+
           const total = useMemo(() => cart.reduce((s, i) => s + i.qty * i.price, 0), [cart]);
           const displayMenu = useMemo(() => {
             const promoItems = menu.filter(item => item.isPromo && item.available);
             const promoItemIds = new Set(promoItems.map(item => item.id));
             const categorizedItems = categories
-              .map(cat => ({
-                category: cat.name,
-                items: menu.filter(item => item.category === cat.name && !promoItemIds.has(item.id))
-              }))
+              .map(cat => ({ category: cat.name, items: menu.filter(item => item.category === cat.name && !promoItemIds.has(item.id)) }))
               .filter(group => group.items.length > 0);
             return { promos: promoItems, categorized: categorizedItems };
           }, [menu, categories]);
 
-          // Cart functions
+          const scrollToCategory = (categoryName) => {
+            const element = document.getElementById(`category-${categoryName}`);
+            if (element) {
+                const headerOffset = 80;
+                const elementPosition = element.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+                setActiveCategory(categoryName);
+            }
+          };
+
           const increaseQty = (m) => {
             if (!storeStatus.isOpen || !m.available) return;
             setCart(prevCart => {
                 const existingItem = prevCart.find(c => c.id === m.id);
-                if (existingItem) {
-                    return prevCart.map(c => c.id === m.id ? { ...c, qty: c.qty + 1 } : c);
-                }
+                if (existingItem) return prevCart.map(c => c.id === m.id ? { ...c, qty: c.qty + 1 } : c);
                 return [...prevCart, { id: m.id, name: m.name, price: m.price, qty: 1, note: '' }];
             });
           };
@@ -149,134 +163,123 @@
             setCart(prevCart => {
                 const existingItem = prevCart.find(c => c.id === id);
                 if (!existingItem) return prevCart;
-                if (existingItem.qty === 1) {
-                    return prevCart.filter(c => c.id !== id);
-                }
+                if (existingItem.qty === 1) return prevCart.filter(c => c.id !== id);
                 return prevCart.map(c => c.id === id ? { ...c, qty: c.qty - 1 } : c);
             });
           };
           const updateCartItemNote = (id, note) => { setCart(cart.map(item => item.id === id ? { ...item, note } : item)); };
           
-          // Checkout
           const checkout = async () => {
             const phoneRegex = /^0\d{9}$/;
-            if (!phoneRegex.test(contact)) {
-                alert("Số điện thoại không hợp lệ. Vui lòng nhập 10 số, bắt đầu bằng 0.");
-                return;
-            }
+            if (!phoneRegex.test(contact)) { alert("Số điện thoại không hợp lệ. Vui lòng nhập 10 số, bắt đầu bằng 0."); return; }
             if (cart.length === 0) return;
             try {
-                const newOrder = { items: cart, total, contact: contact.trim(), status: "pending", payment: paymentMethod, createdAt: Date.now() };
-                await addDoc(collection(db, "orders"), newOrder);
-                alert("Đặt hàng thành công! Cảm ơn bạn.");
-                setCart([]); 
-                setOpenCart(false); 
-                setContact("");
-            } catch (error) {
-                console.error("Error placing order: ", error);
-                alert("Đã có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.");
-            }
+                const orderData = { items: cart, total, contact: contact.trim(), status: "pending", payment: paymentMethod, createdAt: Date.now() };
+                const docRef = await addDoc(collection(db, "orders"), orderData);
+                const finalOrder = { id: docRef.id, ...orderData };
+                localStorage.setItem('banhMiOngKoiContact', contact.trim());
+                localStorage.setItem('banhMiOngKoiLastOrder', JSON.stringify(finalOrder));
+                setLastOrder(finalOrder);
+                setView('thankyou');
+                setCart([]); setOpenCart(false); 
+            } catch (error) { console.error("Error placing order: ", error); alert("Đã có lỗi xảy ra khi đặt hàng. Vui lòng thử lại."); }
           };
 
-          // Helper function for contact input
           const handleContactChange = (e) => {
               const value = e.target.value.replace(/\D/g, '');
-              if (value.length <= 10) { setContact(value); }
+              setContact(value.slice(0, 10));
+          };
+
+          const handleNewOrderClick = () => {
+            localStorage.removeItem('banhMiOngKoiLastOrder');
+            setView('menu');
           };
 
           if (loading) {
-              return <div className="min-h-screen flex items-center justify-center">Đang tải thực đơn...</div>
+              return (
+                <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
+                    <svg className="animate-spin h-8 w-8 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p className="mt-3 text-neutral-600">Đang tải thực đơn...</p>
+                </div>
+              );
           }
 
           return (
             <div className="min-h-screen">
-              <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
-                <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-                  <div><h1 className="font-bold text-lg">BÁNH MÌ ÔNG KÒI</h1><p className="text-xs text-neutral-500">Giao hàng tận nơi</p></div>
+              <header className="bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-md">
+                <div className="max-w-md mx-auto px-4 py-4 text-center">
+                  <h1 className="font-bold text-2xl">BÁNH MÌ ÔNG KÒI</h1>
+                  <p className="text-sm text-orange-100 mt-1">Giao hàng tận nơi</p>
+                  <div className="mt-3 text-sm text-orange-100 space-y-1 border-t border-white/20 pt-3">
+                      <p className="flex items-center justify-center"><PhoneIcon /><a href="tel:0768986969" className="font-semibold">07.6898.6969</a></p>
+                      <p className="flex items-center justify-center"><MapPinIcon /><span>306 Nguyễn Hoàng, TP.Đà Nẵng</span></p>
+                  </div>
                 </div>
               </header>
 
-              <main className="max-w-md mx-auto px-4 pb-28">
-                {/* --- PHẦN GIAO DIỆN CỦA KHÁCH HÀNG --- */}
-                <div>
-                    {!storeStatus.isOpen && (
-                        <div className="p-4 my-4 text-center bg-red-100 text-red-800 rounded-lg">
-                            <p className="font-bold">Cửa hàng đang tạm đóng cửa!</p>
-                            <p className="text-sm">Xin lỗi quý khách vì sự bất tiện này.</p>
+              <main className="max-w-md mx-auto pb-28">
+                {view === 'menu' ? (
+                    <div>
+                        <div className="px-4 py-4 text-center bg-white">
+                            <p className="text-sm text-neutral-700 italic">"Đà Nẵng hàng vạn quán ăn, cảm ơn bạn đã lựa chọn chúng tôi!"</p>
+                            <p className="text-sm text-neutral-700 font-semibold mt-1">Chúc bạn một ngày tốt lành!</p>
                         </div>
-                    )}
-                    {displayMenu.promos.length > 0 && (
-                        <section className="mt-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-lg font-bold">Ưu đãi hôm nay</h3>
-                            </div>
-                            <div className="flex space-x-3 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide">
-                                {displayMenu.promos.map(m => {
-                                    const cartItem = cart.find(c => c.id === m.id);
-                                    const qty = cartItem ? cartItem.qty : 0;
-                                    return (
-                                        <div key={m.id} className="w-64 flex-shrink-0">
-                                            <Card className="p-2 h-full">
-                                                <div className="flex h-full items-center">
-                                                    <img src={m.photo} alt={m.name} className="w-20 h-20 object-cover rounded-lg flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/>
-                                                    <div className="flex flex-col justify-between flex-1 ml-3 h-20">
-                                                        <div>
-                                                            <p className="text-sm font-medium leading-tight" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.name}</p>
-                                                        </div>
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="flex items-baseline gap-2">
-                                                                <p className="font-semibold text-sm">{vnd(m.price)}</p>
-                                                                {m.compareAtPrice > 0 && <p className="text-xs text-neutral-400 line-through">{vnd(m.compareAtPrice)}</p>}
-                                                            </div>
-                                                            <div className="self-end">
-                                                                {qty > 0 ? (
-                                                                    <div className="flex items-center gap-1">
-                                                                        <Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button>
-                                                                        <span className="font-bold w-5 text-center">{qty}</span>
-                                                                        <Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <Button size="icon" className="rounded-full w-8 h-8" disabled={!m.available || !storeStatus.isOpen} onClick={() => increaseQty(m)}>
-                                                                        <PlusIcon/>
-                                                                    </Button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </Card>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </section>
-                    )}
 
-                    <div className="mt-5 space-y-6">{displayMenu.categorized.map(group => (<section key={group.category}><h3 className="text-lg font-bold mb-3">{group.category}</h3><div className="grid grid-cols-2 gap-4">{group.items.map(m => { const cartItem = cart.find(c => c.id === m.id); const qty = cartItem ? cartItem.qty : 0; return (<Card key={m.id} className="overflow-hidden"><div className="relative"><img src={m.photo} alt={m.name} className="w-full h-36 object-cover" onError={(e) => { e.currentTarget.src = 'https://placehold.co/200x150/fef2f2/ef4444?text=Lỗi'; } }/>{m.bestSeller && <span className="absolute top-2 left-2 text-xs px-2 py-1 rounded-full bg-emerald-500 text-white">Bán chạy</span>}{!m.available && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white font-semibold">Hết hàng</span></div>}</div><CardContent><div className="text-sm font-medium min-h-10">{m.name}</div><div className="flex items-center justify-between mt-1"><div><div className="font-semibold">{vnd(m.price)}</div>{m.compareAtPrice > 0 && <div className="text-xs text-neutral-400 line-through">{vnd(m.compareAtPrice)}</div>}</div>{qty > 0 ? (<div className="flex items-center gap-1"><Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button><span className="font-bold w-5 text-center">{qty}</span><Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button></div>) : (<Button size="icon" className="rounded-full w-8 h-8" disabled={!m.available || !storeStatus.isOpen} onClick={() => increaseQty(m)}><PlusIcon/></Button>)}</div></CardContent></Card>)})}</div></section>))}</div>
-                  </div>
+                        {!storeStatus.isOpen && (<div className="p-4 m-4 text-center bg-red-100 text-red-800 rounded-lg"><p className="font-bold">Cửa hàng đang tạm đóng cửa!</p><p className="text-sm">Xin lỗi quý khách vì sự bất tiện này.</p></div>)}
+                        {displayMenu.promos.length > 0 && (
+                            <section className="mt-4">
+                                <h3 className="text-lg font-bold mb-2 px-4">Ưu đãi hôm nay</h3>
+                                <div className="flex space-x-3 overflow-x-auto pb-3 px-4 scrollbar-hide">
+                                    {displayMenu.promos.map(m => {
+                                        const cartItem = cart.find(c => c.id === m.id); const qty = cartItem ? cartItem.qty : 0;
+                                        return (
+                                            <div key={m.id} className="w-64 flex-shrink-0">
+                                                <Card className="p-2 h-full"><div className="flex h-full items-center"><img src={m.photo} alt={m.name} className="w-20 h-20 object-cover rounded-lg flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/><div className="flex flex-col justify-between flex-1 ml-3 h-20"><p className="text-sm font-medium leading-tight" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.name}</p><div className="flex justify-between items-center"><div className="flex items-baseline gap-2"><p className="font-semibold text-sm">{vnd(m.price)}</p>{m.compareAtPrice > 0 && <p className="text-xs text-neutral-400 line-through">{vnd(m.compareAtPrice)}</p>}</div><div className="self-end">{qty > 0 ? (<div className="flex items-center gap-1"><Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button><span className="font-bold w-5 text-center">{qty}</span><Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button></div>) : (<Button size="icon" className="rounded-full w-8 h-8" disabled={!m.available || !storeStatus.isOpen} onClick={() => increaseQty(m)}><PlusIcon/></Button>)}</div></div></div></div></Card>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </section>
+                        )}
+                        
+                        <nav className="sticky top-0 bg-neutral-100/80 backdrop-blur-sm z-30 py-3 border-y">
+                            <div className="max-w-md mx-auto px-4">
+                                <div className="flex space-x-4 overflow-x-auto scrollbar-hide">
+                                    {displayMenu.categorized.map(group => (
+                                        <button key={group.category} onClick={() => scrollToCategory(group.category)} className={`px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${activeCategory === group.category ? `bg-[${BRAND_COLOR}] text-white` : 'bg-white text-neutral-700 shadow-sm'}`}>
+                                            {group.category}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </nav>
+
+                        <div className="mt-5 space-y-6 px-4">
+                            {displayMenu.categorized.map(group => (
+                                <section key={group.category} id={`category-${group.category}`}>
+                                    <h3 className="text-xl font-bold mb-4">{group.category}</h3>
+                                    <div className="space-y-3">
+                                        {group.items.map(m => { 
+                                            const cartItem = cart.find(c => c.id === m.id); const qty = cartItem ? cartItem.qty : 0; 
+                                            return (
+                                                <Card key={m.id}><div className="flex items-center p-3 gap-3"><img src={m.photo} alt={m.name} className="w-24 h-24 object-cover rounded-md flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/><div className="flex-grow self-start"><h4 className="font-bold text-base leading-tight">{m.name}</h4>{m.description && (<p className="text-sm text-neutral-500 mt-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.description}</p>)}<p className="font-semibold mt-2 text-base">{vnd(m.price)}</p></div><div className="flex-shrink-0 self-end">{qty > 0 ? (<div className="flex items-center gap-1"><Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button><span className="font-bold w-5 text-center">{qty}</span><Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button></div>) : (<Button size="icon" className="rounded-full w-9 h-9" disabled={!m.available || !storeStatus.isOpen} onClick={() => increaseQty(m)}><PlusIcon/></Button>)}</div></div>{!m.available && <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl"><span className="text-black font-semibold border bg-white px-2 py-1 rounded-md">Hết hàng</span></div>}</Card>
+                                            )
+                                        })}
+                                    </div>
+                                </section>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <ThankYouPage order={lastOrder} onNewOrder={handleNewOrderClick} />
+                )}
               </main>
 
-              {/* Cart Button & Modal */}
-              {cart.length > 0 && (<div className="fixed bottom-0 left-0 right-0 z-30"><div className="max-w-md mx-auto p-2"><Button className="w-full h-12 rounded-xl text-base" onClick={()=> setOpenCart(true)}><div className="flex items-center justify-between w-full"><span>{cart.reduce((s,i)=>s+i.qty,0)} món</span><span className="font-bold">{vnd(total)}</span></div></Button></div></div>)}
-              {openCart && (<div className="fixed inset-0 z-50 flex flex-col justify-end">
-                  <div className="absolute inset-0 bg-black/60" onClick={() => setOpenCart(false)}></div>
-                  <div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[80vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}>
-                      <div className="p-4 border-b flex-shrink-0"><h2 className="text-lg font-semibold text-center">Tóm tắt đơn hàng</h2></div>
-                      <div className="flex-1 p-4 space-y-3 overflow-y-auto">{cart.map(c => (<Card key={c.id}><CardContent><div className="flex-1"><div className="flex items-center justify-between"><div className="font-medium">{c.name}</div><div className="text-sm text-neutral-600">{vnd(c.price * c.qty)}</div></div><div className="mt-2 flex items-center gap-2"><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>decreaseQty(c.id)}><MinusIcon/></Button><div className="w-10 text-center font-semibold">{c.qty}</div><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>increaseQty(c)}><PlusIcon/></Button></div><Textarea className="mt-2 text-sm" placeholder="Ghi chú (ít ớt, không rau…)" value={c.note||""} onChange={e => updateCartItemNote(c.id, e.target.value)}/></div></CardContent></Card>))}</div>
-                      <div className="p-4 border-t bg-white space-y-3 flex-shrink-0">
-                          <Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={handleContactChange} type="tel" maxLength={10} />
-                          <div>
-                              <div className="text-sm font-medium mb-2">Phương thức thanh toán</div>
-                              <div className="grid grid-cols-2 gap-2">
-                                  <button onClick={() => setPaymentMethod('TIENMAT')} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'TIENMAT' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Tiền mặt</button>
-                                  <button onClick={() => setPaymentMethod('CHUYENKHOAN')} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'CHUYENKHOAN' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Chuyển khoản</button>
-                              </div>
-                          </div>
-                          <div className="flex items-center justify-between font-semibold text-lg"><span>Tổng cộng</span><span style={{ color: BRAND_COLOR }}>{vnd(total)}</span></div>
-                          <Button className="w-full h-12 rounded-xl text-base" onClick={checkout}>Đặt hàng</Button>
-                      </div>
-                  </div>
-              </div>)}
+              {view === 'menu' && cart.length > 0 && (<div className="fixed bottom-0 left-0 right-0 z-30"><div className="max-w-md mx-auto p-2"><Button className="w-full h-12 rounded-xl text-base shadow-lg" onClick={()=> setOpenCart(true)}><div className="flex items-center justify-between w-full"><span>{cart.reduce((s,i)=>s+i.qty,0)} món</span><span className="font-bold">{vnd(total)}</span></div></Button></div></div>)}
+              {view === 'menu' && openCart && (<div className="fixed inset-0 z-50 flex flex-col justify-end"><div className="absolute inset-0 bg-black/60" onClick={() => setOpenCart(false)}></div><div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[80vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}><div className="p-4 border-b flex-shrink-0"><h2 className="text-lg font-semibold text-center">Tóm tắt đơn hàng</h2></div><div className="flex-1 p-4 space-y-3 overflow-y-auto">{cart.map(c => (<Card key={c.id}><div className="p-3"><div><div className="flex items-center justify-between"><div className="font-medium">{c.name}</div><div className="text-sm text-neutral-600">{vnd(c.price * c.qty)}</div></div><div className="mt-2 flex items-center gap-2"><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>decreaseQty(c.id)}><MinusIcon/></Button><div className="w-10 text-center font-semibold">{c.qty}</div><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>increaseQty(c)}><PlusIcon/></Button></div><Textarea className="mt-2 text-sm" placeholder="Ghi chú (ít ớt, không rau…)" value={c.note||""} onChange={e => updateCartItemNote(c.id, e.target.value)}/></div></div></Card>))}</div><div className="p-4 border-t bg-white space-y-3 flex-shrink-0"><Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={handleContactChange} type="tel" maxLength={10} /><div><div className="text-sm font-medium mb-2">Phương thức thanh toán</div><div className="grid grid-cols-2 gap-2"><button onClick={() => setPaymentMethod('TIENMAT')} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'TIENMAT' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Tiền mặt</button><button onClick={() => setPaymentMethod('CHUYENKHOAN')} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'CHUYENKHOAN' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Chuyển khoản</button></div></div><div className="flex items-center justify-between font-semibold text-lg"><span>Tổng cộng</span><span style={{ color: BRAND_COLOR }}>{vnd(total)}</span></div><Button className="w-full h-12 rounded-xl text-base" onClick={checkout}>Đặt hàng</Button></div></div></div>)}
             </div>
           );
         }
