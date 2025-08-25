@@ -66,10 +66,8 @@
         
         const vnd = (n) => n.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
 
-        // ===== START: NÂNG CẤP TRANG CẢM ƠN =====
         const ThankYouPage = ({ order, onNewOrder }) => {
             if (!order) return null;
-
             const getStatusDisplay = (status) => {
               switch (status) {
                   case 'pending': return { text: 'Đang chờ xác nhận', className: 'bg-yellow-100 text-yellow-800' };
@@ -80,7 +78,6 @@
               }
             };
             const statusDisplay = getStatusDisplay(order.status);
-
             return (
                 <div className="flex flex-col items-center justify-center text-center min-h-[70vh] px-4">
                     <CheckCircleIcon />
@@ -98,7 +95,33 @@
                 </div>
             );
         };
-        // ===== END: NÂNG CẤP TRANG CẢM ƠN =====
+
+        // ===== START: NÂNG CẤP POP-UP MÃ QR =====
+        const QrCodeModal = ({ total, onClose }) => {
+            // !!! QUAN TRỌNG: THAY THẾ BẰNG THÔNG TIN CỦA BẠN !!!
+            const qrCodeUrl = "https://img.vietqr.io/image/TCB-7989696969-compact.png"; // <-- THAY LINK ẢNH QR CỦA BẠN
+            const accountName = "MAI CHI VY"; // <-- THAY TÊN CHỦ TÀI KHOẢN
+            const accountNumber = "7989696969"; // <-- THAY SỐ TÀI KHOẢN
+            const bankName = "TECHCOMBANK"; // <-- THAY TÊN NGÂN HÀNG
+
+            return (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
+                    <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-xs m-4 text-center">
+                        <h3 className="text-lg font-semibold mb-2">Quét mã để thanh toán</h3>
+                        <p className="text-sm text-neutral-500 mb-4">Sử dụng app ngân hàng hoặc ví điện tử để quét mã VietQR.</p>
+                        <img src={qrCodeUrl} alt="Mã QR thanh toán" className="w-full h-auto rounded-lg border" />
+                        <div className="mt-4 text-sm text-left space-y-2">
+                            <p><strong>Số tiền:</strong> <span className="font-bold text-lg" style={{color: BRAND_COLOR}}>{vnd(total)}</span></p>
+                            <p><strong>Chủ tài khoản:</strong> <span className="font-semibold">{accountName}</span></p>
+                            <p><strong>Số tài khoản:</strong> <span className="font-semibold">{accountNumber}</span></p>
+                            <p><strong>Ngân hàng:</strong> <span className="font-semibold">{bankName}</span></p>
+                        </div>
+                        <Button variant="outline" className="w-full mt-6" onClick={onClose}>Đã hiểu</Button>
+                    </div>
+                </div>
+            );
+        };
+        // ===== END: NÂNG CẤP POP-UP MÃ QR =====
 
         function App() {
           const [view, setView] = useState('menu'); 
@@ -112,19 +135,13 @@
           const [paymentMethod, setPaymentMethod] = useState("TIENMAT");
           const [openCart, setOpenCart] = useState(false);
           const [activeCategory, setActiveCategory] = useState('');
-          const categoryRefs = useRef({});
+          const [showQrModal, setShowQrModal] = useState(false); // State cho pop-up QR
 
           useEffect(() => {
             const savedContact = localStorage.getItem('banhMiOngKoiContact');
             if (savedContact) setContact(savedContact);
-            
-            // ===== START: NÂNG CẤP LƯU TRẠNG THÁI ĐƠN HÀNG =====
             const savedOrder = localStorage.getItem('banhMiOngKoiLastOrder');
-            if (savedOrder) {
-                setLastOrder(JSON.parse(savedOrder));
-                setView('thankyou');
-            }
-            // ===== END: NÂNG CẤP LƯU TRẠNG THÁI ĐƠN HÀNG =====
+            if (savedOrder) { setLastOrder(JSON.parse(savedOrder)); setView('thankyou'); }
           }, []);
 
           useEffect(() => {
@@ -147,7 +164,6 @@
             return () => { unsubscribers.forEach(unsub => unsub()); clearTimeout(loadingTimeout); };
           }, []);
 
-          // ===== START: NÂNG CẤP THEO DÕI TRẠNG THÁI REALTIME =====
           useEffect(() => {
             if (lastOrder && lastOrder.id) {
                 const orderRef = doc(db, "orders", lastOrder.id);
@@ -155,15 +171,12 @@
                     if (doc.exists()) {
                         const updatedOrder = { id: doc.id, ...doc.data() };
                         setLastOrder(updatedOrder);
-                        // Cập nhật lại localStorage nếu trạng thái thay đổi
                         localStorage.setItem('banhMiOngKoiLastOrder', JSON.stringify(updatedOrder));
                     }
                 });
-                // Dọn dẹp listener khi component unmount hoặc khi đặt đơn mới
                 return () => unsubscribe();
             }
-          }, [lastOrder?.id]); // Chỉ chạy lại khi ID của đơn hàng cuối cùng thay đổi
-          // ===== END: NÂNG CẤP THEO DÕI TRẠNG THÁI REALTIME =====
+          }, [lastOrder?.id]);
 
           const total = useMemo(() => cart.reduce((s, i) => s + i.qty * i.price, 0), [cart]);
           const displayMenu = useMemo(() => {
@@ -225,12 +238,10 @@
               setContact(value.slice(0, 10));
           };
           
-          // ===== START: NÂNG CẤP NÚT ĐẶT ĐƠN MỚI =====
           const handleNewOrderClick = () => {
             localStorage.removeItem('banhMiOngKoiLastOrder');
             setView('menu');
           };
-          // ===== END: NÂNG CẤP NÚT ĐẶT ĐƠN MỚI =====
 
           if (loading) {
               return (
@@ -316,7 +327,31 @@
               </main>
 
               {view === 'menu' && cart.length > 0 && (<div className="fixed bottom-0 left-0 right-0 z-30"><div className="max-w-md mx-auto p-2"><Button className="w-full h-12 rounded-xl text-base shadow-lg" onClick={()=> setOpenCart(true)}><div className="flex items-center justify-between w-full"><span>{cart.reduce((s,i)=>s+i.qty,0)} món</span><span className="font-bold">{vnd(total)}</span></div></Button></div></div>)}
-              {view === 'menu' && openCart && (<div className="fixed inset-0 z-50 flex flex-col justify-end"><div className="absolute inset-0 bg-black/60" onClick={() => setOpenCart(false)}></div><div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[80vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}><div className="p-4 border-b flex-shrink-0"><h2 className="text-lg font-semibold text-center">Tóm tắt đơn hàng</h2></div><div className="flex-1 p-4 space-y-3 overflow-y-auto">{cart.map(c => (<Card key={c.id}><div className="p-3"><div><div className="flex items-center justify-between"><div className="font-medium">{c.name}</div><div className="text-sm text-neutral-600">{vnd(c.price * c.qty)}</div></div><div className="mt-2 flex items-center gap-2"><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>decreaseQty(c.id)}><MinusIcon/></Button><div className="w-10 text-center font-semibold">{c.qty}</div><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>increaseQty(c)}><PlusIcon/></Button></div><Textarea className="mt-2 text-sm" placeholder="Ghi chú (ít ớt, không rau…)" value={c.note||""} onChange={e => updateCartItemNote(c.id, e.target.value)}/></div></div></Card>))}</div><div className="p-4 border-t bg-white space-y-3 flex-shrink-0"><Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={handleContactChange} type="tel" maxLength={10} /><div><div className="text-sm font-medium mb-2">Phương thức thanh toán</div><div className="grid grid-cols-2 gap-2"><button onClick={() => setPaymentMethod('TIENMAT')} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'TIENMAT' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Tiền mặt</button><button onClick={() => setPaymentMethod('CHUYENKHOAN')} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'CHUYENKHOAN' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Chuyển khoản</button></div></div><div className="flex items-center justify-between font-semibold text-lg"><span>Tổng cộng</span><span style={{ color: BRAND_COLOR }}>{vnd(total)}</span></div><Button className="w-full h-12 rounded-xl text-base" onClick={checkout}>Đặt hàng</Button></div></div></div>)}
+              
+              {/* ===== START: CẬP NHẬT GIỎ HÀNG VÀ POP-UP QR ===== */}
+              {view === 'menu' && openCart && (
+                <div className="fixed inset-0 z-50 flex flex-col justify-end">
+                  <div className="absolute inset-0 bg-black/60" onClick={() => setOpenCart(false)}></div>
+                  <div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[80vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}>
+                      <div className="p-4 border-b flex-shrink-0"><h2 className="text-lg font-semibold text-center">Tóm tắt đơn hàng</h2></div>
+                      <div className="flex-1 p-4 space-y-3 overflow-y-auto">{cart.map(c => (<Card key={c.id}><div className="p-3"><div><div className="flex items-center justify-between"><div className="font-medium">{c.name}</div><div className="text-sm text-neutral-600">{vnd(c.price * c.qty)}</div></div><div className="mt-2 flex items-center gap-2"><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>decreaseQty(c.id)}><MinusIcon/></Button><div className="w-10 text-center font-semibold">{c.qty}</div><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>increaseQty(c)}><PlusIcon/></Button></div><Textarea className="mt-2 text-sm" placeholder="Ghi chú (ít ớt, không rau…)" value={c.note||""} onChange={e => updateCartItemNote(c.id, e.target.value)}/></div></div></Card>))}</div>
+                      <div className="p-4 border-t bg-white space-y-3 flex-shrink-0">
+                          <Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={handleContactChange} type="tel" maxLength={10} />
+                          <div>
+                              <div className="text-sm font-medium mb-2">Phương thức thanh toán</div>
+                              <div className="grid grid-cols-2 gap-2">
+                                  <button onClick={() => setPaymentMethod('TIENMAT')} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'TIENMAT' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Tiền mặt</button>
+                                  <button onClick={() => { setPaymentMethod('CHUYENKHOAN'); setShowQrModal(true); }} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'CHUYENKHOAN' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Chuyển khoản</button>
+                              </div>
+                          </div>
+                          <div className="flex items-center justify-between font-semibold text-lg"><span>Tổng cộng</span><span style={{ color: BRAND_COLOR }}>{vnd(total)}</span></div>
+                          <Button className="w-full h-12 rounded-xl text-base" onClick={checkout}>Đặt hàng</Button>
+                      </div>
+                  </div>
+                </div>
+              )}
+              {showQrModal && <QrCodeModal total={total} onClose={() => setShowQrModal(false)} />}
+              {/* ===== END: CẬP NHẬT GIỎ HÀNG VÀ POP-UP QR ===== */}
             </div>
           );
         }
