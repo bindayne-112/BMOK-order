@@ -84,7 +84,9 @@
                     <h2 className="text-2xl font-bold mt-4">Đặt hàng thành công!</h2>
                     <p className="text-neutral-600 mt-2">Cảm ơn bạn đã tin tưởng. Vui lòng theo dõi trạng thái đơn hàng dưới đây.</p>
                     <div className="w-full max-w-sm mt-8 text-left border rounded-lg p-4 bg-white">
-                        <h3 className="font-semibold border-b pb-2">Tóm tắt đơn hàng #{order.id.slice(-6)}</h3>
+                        {/* ===== START: THAY ĐỔI MÃ ĐƠN HÀNG ===== */}
+                        <h3 className="font-semibold border-b pb-2">Tóm tắt đơn hàng #{String(order.createdAt).slice(-6)}</h3>
+                        {/* ===== END: THAY ĐỔI MÃ ĐƠN HÀNG ===== */}
                         <ul className="text-sm space-y-2 py-3">
                             {order.items.map(item => (<li key={item.id} className="flex justify-between"><span>{item.qty} x {item.name}</span><span className="font-medium">{vnd(item.qty * item.price)}</span></li>))}
                         </ul>
@@ -331,7 +333,6 @@
                   <div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[80vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}>
                       <div className="p-4 border-b flex-shrink-0"><h2 className="text-lg font-semibold text-center">Tóm tắt đơn hàng</h2></div>
                       <div className="flex-1 p-4 space-y-3 overflow-y-auto">
-                        {/* ===== START: CẬP NHẬT BỐ CỤC GIỎ HÀNG ===== */}
                         {cart.map(c => (
                             <Card key={c.id}>
                                 <div className="p-3">
@@ -350,7 +351,6 @@
                                 </div>
                             </Card>
                         ))}
-                        {/* ===== END: CẬP NHẬT BỐ CỤC GIỎ HÀNG ===== */}
                       </div>
                       <div className="p-4 border-t bg-white space-y-3 flex-shrink-0">
                           <Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={handleContactChange} type="tel" maxLength={10} />
