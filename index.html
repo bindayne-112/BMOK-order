@@ -96,13 +96,11 @@
             );
         };
 
-        // ===== START: NÂNG CẤP POP-UP MÃ QR =====
         const QrCodeModal = ({ total, onClose }) => {
-            // !!! QUAN TRỌNG: THAY THẾ BẰNG THÔNG TIN CỦA BẠN !!!
-            const qrCodeUrl = "https://img.vietqr.io/image/TCB-7989696969-compact.png"; // <-- THAY LINK ẢNH QR CỦA BẠN
-            const accountName = "MAI CHI VY"; // <-- THAY TÊN CHỦ TÀI KHOẢN
-            const accountNumber = "7989696969"; // <-- THAY SỐ TÀI KHOẢN
-            const bankName = "TECHCOMBANK"; // <-- THAY TÊN NGÂN HÀNG
+            const qrCodeUrl = "https://img.vietqr.io/image/TCB-7989696969-compact.png";
+            const accountName = "MAI CHI VY";
+            const accountNumber = "7989696969";
+            const bankName = "TECHCOMBANK";
 
             return (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
@@ -121,7 +119,6 @@
                 </div>
             );
         };
-        // ===== END: NÂNG CẤP POP-UP MÃ QR =====
 
         function App() {
           const [view, setView] = useState('menu'); 
@@ -135,7 +132,7 @@
           const [paymentMethod, setPaymentMethod] = useState("TIENMAT");
           const [openCart, setOpenCart] = useState(false);
           const [activeCategory, setActiveCategory] = useState('');
-          const [showQrModal, setShowQrModal] = useState(false); // State cho pop-up QR
+          const [showQrModal, setShowQrModal] = useState(false);
 
           useEffect(() => {
             const savedContact = localStorage.getItem('banhMiOngKoiContact');
@@ -328,13 +325,33 @@
 
               {view === 'menu' && cart.length > 0 && (<div className="fixed bottom-0 left-0 right-0 z-30"><div className="max-w-md mx-auto p-2"><Button className="w-full h-12 rounded-xl text-base shadow-lg" onClick={()=> setOpenCart(true)}><div className="flex items-center justify-between w-full"><span>{cart.reduce((s,i)=>s+i.qty,0)} món</span><span className="font-bold">{vnd(total)}</span></div></Button></div></div>)}
               
-              {/* ===== START: CẬP NHẬT GIỎ HÀNG VÀ POP-UP QR ===== */}
               {view === 'menu' && openCart && (
                 <div className="fixed inset-0 z-50 flex flex-col justify-end">
                   <div className="absolute inset-0 bg-black/60" onClick={() => setOpenCart(false)}></div>
                   <div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[80vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}>
                       <div className="p-4 border-b flex-shrink-0"><h2 className="text-lg font-semibold text-center">Tóm tắt đơn hàng</h2></div>
-                      <div className="flex-1 p-4 space-y-3 overflow-y-auto">{cart.map(c => (<Card key={c.id}><div className="p-3"><div><div className="flex items-center justify-between"><div className="font-medium">{c.name}</div><div className="text-sm text-neutral-600">{vnd(c.price * c.qty)}</div></div><div className="mt-2 flex items-center gap-2"><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>decreaseQty(c.id)}><MinusIcon/></Button><div className="w-10 text-center font-semibold">{c.qty}</div><Button size="icon" variant="outline" className="rounded-full w-8 h-8" onClick={()=>increaseQty(c)}><PlusIcon/></Button></div><Textarea className="mt-2 text-sm" placeholder="Ghi chú (ít ớt, không rau…)" value={c.note||""} onChange={e => updateCartItemNote(c.id, e.target.value)}/></div></div></Card>))}</div>
+                      <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+                        {/* ===== START: CẬP NHẬT BỐ CỤC GIỎ HÀNG ===== */}
+                        {cart.map(c => (
+                            <Card key={c.id}>
+                                <div className="p-3">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-grow pr-4">
+                                            <p className="font-medium">{c.name}</p>
+                                            <p className="text-sm text-neutral-500">{vnd(c.price * c.qty)}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            <Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={()=>decreaseQty(c.id)}><MinusIcon/></Button>
+                                            <span className="font-bold w-6 text-center">{c.qty}</span>
+                                            <Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={()=>increaseQty(c)}><PlusIcon/></Button>
+                                        </div>
+                                    </div>
+                                    <Textarea className="mt-2 text-sm" placeholder="Ghi chú (ít ớt, không rau…)" value={c.note||""} onChange={e => updateCartItemNote(c.id, e.target.value)}/>
+                                </div>
+                            </Card>
+                        ))}
+                        {/* ===== END: CẬP NHẬT BỐ CỤC GIỎ HÀNG ===== */}
+                      </div>
                       <div className="p-4 border-t bg-white space-y-3 flex-shrink-0">
                           <Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={handleContactChange} type="tel" maxLength={10} />
                           <div>
@@ -351,7 +368,6 @@
                 </div>
               )}
               {showQrModal && <QrCodeModal total={total} onClose={() => setShowQrModal(false)} />}
-              {/* ===== END: CẬP NHẬT GIỎ HÀNG VÀ POP-UP QR ===== */}
             </div>
           );
         }
