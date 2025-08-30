@@ -323,7 +323,7 @@
             const [newCategoryName, setNewCategoryName] = useState("");
 
             const handleAddNewItem = () => {
-                setEditingItem({ isNew: true, name: "", price: "", compareAtPrice: "", photo: "", category: categories[0]?.name || "", description: "", available: true, isPromo: false, bestSeller: false, toppingGroupIds: [] });
+                setEditingItem({ isNew: true, name: "", price: "", compareAtPrice: "", photo: "", category: categories[0]?.name || "", description: "", available: true, isPromo: false, bestSeller: false, isDealOfDay: false, toppingGroupIds: [] });
                 setIsActionModalOpen(false);
             };
 
@@ -660,6 +660,24 @@
                             </div>
                         </div>
 
+                        {/* === THAY ĐỔI BẮT ĐẦU === */}
+                        <div className="border-t border-slate-200 pt-4">
+                            <h3 className="font-semibold text-slate-800 mb-2">Gắn thẻ</h3>
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                                    <div>
+                                        <p className="font-medium text-sm text-slate-700">Ưu đãi hôm nay</p>
+                                        <p className="text-xs text-slate-500">Gắn nhãn món ăn ưu đãi trong ngày.</p>
+                                    </div>
+                                    <Switch
+                                        checked={editingItem.isDealOfDay || false}
+                                        onChange={() => setEditingItem({...editingItem, isDealOfDay: !editingItem.isDealOfDay})}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        {/* === THAY ĐỔI KẾT THÚC === */}
+                        
                         <div className="border-t border-slate-200 pt-4">
                             <h3 className="font-semibold text-slate-800 mb-2">Liên kết nhóm tuỳ chọn</h3>
                             <div className="space-y-2">
@@ -700,4 +718,3 @@
     </script>
 </body>
 </html>
-
