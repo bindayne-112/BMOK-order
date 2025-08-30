@@ -23,13 +23,14 @@
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         html { scroll-behavior: smooth; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 <body class="bg-neutral-100">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useEffect, useMemo, useState, useRef, useCallback } = React;
+        const { useEffect, useMemo, useState } = React;
         
         const { initializeApp } = window.firebaseApp;
         const { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, query, orderBy } = window.firebaseFirestore;
@@ -49,117 +50,70 @@
         // ===== Icon Components (SVG) =====
         const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>;
         const MinusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="5" x2="19" y1="12" y2="12"/></svg>;
-        const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-16 w-16 text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
-        const PhoneIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 mr-2 ${className}`}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81 .7A2 2 0 0 1 22 16.92z"></path></svg>;
-        const MapPinIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 mr-2 ${className}`}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
+        const SuccessIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81 .7A2 2 0 0 1 22 16.92z"></path></svg>;
+        const MapPinIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
         
         const vnd = (n) => n.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
         
         // ===== UI Components =====
         const Button = ({ children, className, variant="default", ...props }) => {
             const baseClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-10 py-2 px-4";
-            const variants = {
-                default: "brand-bg text-white hover:opacity-90",
-                outline: "border border-gray-300 bg-transparent hover:bg-neutral-100",
-            };
+            const variants = { default: "brand-bg text-white hover:opacity-90", outline: "border border-gray-300 bg-transparent hover:bg-neutral-100" };
             return <button className={`${baseClasses} ${variants[variant]} ${className}`} {...props}>{children}</button>
         };
         const Card = ({ children, className, ...props }) => <div className={`rounded-xl border bg-white text-neutral-950 shadow-sm ${className}`} {...props}>{children}</div>;
         const Input = ({ className, ...props }) => <input className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 brand-ring ${className}`} {...props} />;
         const Textarea = ({ className, ...props }) => <textarea className={`flex min-h-[60px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 brand-ring ${className}`} {...props} />;
 
-        // Item Detail Modal to select toppings
         const ItemDetailModal = ({ item, allToppingGroups, allToppings, onClose, onAddToCart }) => {
             const [quantity, setQuantity] = useState(1);
             const [note, setNote] = useState('');
             const [selectedOptions, setSelectedOptions] = useState({});
 
-            const relevantGroups = useMemo(() => {
-                return allToppingGroups.filter(g => item.toppingGroupIds?.includes(g.id) && g.name);
-            }, [item, allToppingGroups]);
+            const relevantGroups = useMemo(() => allToppingGroups.filter(g => item.toppingGroupIds?.includes(g.id) && g.name), [item, allToppingGroups]);
 
             useEffect(() => {
                 const defaultSelections = {};
                 relevantGroups.forEach(group => {
                     if (group.required) {
-                        let defaultOption;
-                        // Logic mới: Ưu tiên chọn 'Vừa' làm mặc định cho nhóm 'Kích cỡ'
-                        if (group.name && group.name.toLowerCase().includes('kích cỡ')) {
-                           defaultOption = allToppings.find(t => t.groupId === group.id && t.available && t.name.toLowerCase() === 'vừa');
-                        }
-                        
-                        // Nếu không phải nhóm kích cỡ hoặc không tìm thấy size 'Vừa', dùng logic cũ
-                        if (!defaultOption) {
-                           defaultOption = allToppings.find(t => t.groupId === group.id && t.available);
-                        }
-
-                        if (defaultOption) {
-                            if (group.type === 'single') {
-                                defaultSelections[group.id] = defaultOption.id;
-                            } else {
-                                defaultSelections[group.id] = [defaultOption.id];
-                            }
-                        }
+                        let defaultOption = allToppings.find(t => t.groupId === group.id && t.available && (group.name?.toLowerCase().includes('kích cỡ') ? t.name.toLowerCase() === 'vừa' : true));
+                        if (!defaultOption) defaultOption = allToppings.find(t => t.groupId === group.id && t.available);
+                        if (defaultOption) defaultSelections[group.id] = group.type === 'single' ? defaultOption.id : [defaultOption.id];
                     }
                 });
                 setSelectedOptions(defaultSelections);
             }, [relevantGroups, allToppings]);
 
             const handleOptionChange = (group, optionId) => {
-                const currentSelection = selectedOptions[group.id];
-
-                if (group.type === 'single') {
-                    const newSelection = currentSelection === optionId ? null : optionId;
-                    setSelectedOptions({ ...selectedOptions, [group.id]: newSelection });
-                } else { // multiple
-                    const currentArray = currentSelection || [];
-                    const newSelection = currentArray.includes(optionId)
-                        ? currentArray.filter(id => id !== optionId)
-                        : [...currentArray, optionId];
-                    
-                    if (newSelection.length > (group.maxSelection || 99)) return;
-                    
-                    setSelectedOptions({ ...selectedOptions, [group.id]: newSelection });
-                }
+                setSelectedOptions(prev => {
+                    const current = prev[group.id];
+                    if (group.type === 'single') return { ...prev, [group.id]: current === optionId ? null : optionId };
+                    const currentArray = current || [];
+                    const newSelection = currentArray.includes(optionId) ? currentArray.filter(id => id !== optionId) : [...currentArray, optionId];
+                    if (newSelection.length > (group.maxSelection || 99)) return prev;
+                    return { ...prev, [group.id]: newSelection };
+                });
             };
             
             const total = useMemo(() => {
-                let optionsPrice = 0;
-                for (const groupId in selectedOptions) {
-                    const selection = selectedOptions[groupId];
-                    if (!selection) continue;
-
-                    if (Array.isArray(selection)) { // multiple
-                        selection.forEach(optionId => {
-                            const option = allToppings.find(t => t.id === optionId);
-                            if (option) optionsPrice += option.price;
-                        });
-                    } else { // single
-                        const option = allToppings.find(t => t.id === selection);
-                        if (option) optionsPrice += option.price;
-                    }
-                }
+                const optionsPrice = Object.values(selectedOptions).flat().reduce((sum, optionId) => {
+                    const option = allToppings.find(t => t.id === optionId);
+                    return sum + (option ? option.price : 0);
+                }, 0);
                 return (item.price + optionsPrice) * quantity;
             }, [item, selectedOptions, quantity, allToppings]);
             
             const handleAddToCartClick = () => {
-                const finalSelectedToppings = [];
-                for (const groupId in selectedOptions) {
-                     const group = allToppingGroups.find(g => g.id === groupId);
-                     const selection = selectedOptions[groupId];
-
-                     if (!selection) continue;
-
-                     if(Array.isArray(selection)){
-                         selection.forEach(optionId => {
-                             const option = allToppings.find(t => t.id === optionId);
-                             if(option) finalSelectedToppings.push({groupName: group.name, ...option});
-                         })
-                     } else {
-                         const option = allToppings.find(t => t.id === selection);
-                         if(option) finalSelectedToppings.push({groupName: group.name, ...option});
-                     }
-                }
+                const finalSelectedToppings = Object.entries(selectedOptions).flatMap(([groupId, selection]) => {
+                    const group = allToppingGroups.find(g => g.id === groupId);
+                    if (!group) return [];
+                    const ids = Array.isArray(selection) ? selection : [selection];
+                    return ids.map(id => {
+                        const option = allToppings.find(t => t.id === id);
+                        return option ? { groupName: group.name, ...option } : null;
+                    }).filter(Boolean);
+                });
                 onAddToCart(item, quantity, note, finalSelectedToppings);
                 onClose();
             };
@@ -167,7 +121,7 @@
             return (
                 <div className="fixed inset-0 z-50 flex items-end">
                     <div className="absolute inset-0 bg-black/40" onClick={onClose}></div>
-                    <div className="relative bg-neutral-100 w-full rounded-t-2xl flex flex-col max-h-[85vh]">
+                    <div className="relative bg-neutral-100 w-full rounded-t-2xl flex flex-col max-h-[80vh]">
                          <div className="flex-shrink-0 p-4">
                             <img src={item.photo} alt={item.name} className="w-full h-40 object-cover rounded-xl"/>
                             <h2 className="text-2xl font-bold mt-3 text-slate-800">{item.name}</h2>
@@ -177,42 +131,21 @@
                              {relevantGroups.map(group => {
                                 let groupToppings = allToppings.filter(t => t.groupId === group.id && t.available);
                                 if (groupToppings.length === 0) return null;
-
-                                // Logic mới: Sắp xếp các lựa chọn trong nhóm 'Kích cỡ'
-                                if (group.name && group.name.toLowerCase().includes('kích cỡ')) {
+                                if (group.name?.toLowerCase().includes('kích cỡ')) {
                                     const sizeOrder = ['nhỏ', 'vừa', 'lớn'];
-                                    groupToppings.sort((a, b) => {
-                                        const aIndex = sizeOrder.indexOf(a.name.toLowerCase());
-                                        const bIndex = sizeOrder.indexOf(b.name.toLowerCase());
-                                        return aIndex - bIndex;
-                                    });
+                                    groupToppings.sort((a, b) => sizeOrder.indexOf(a.name.toLowerCase()) - sizeOrder.indexOf(b.name.toLowerCase()));
                                 }
-
                                 return (
                                     <div key={group.id}>
                                         <h3 className="font-semibold text-neutral-800">{group.name} {group.required && <span className="text-red-500">*</span>}</h3>
-                                        <p className="text-xs text-neutral-500">
-                                            {group.type === 'single' ? "Chọn 1" : `Chọn tối đa ${group.maxSelection || 'nhiều'}`}
-                                        </p>
+                                        <p className="text-xs text-neutral-500">{group.type === 'single' ? "Chọn 1" : `Chọn tối đa ${group.maxSelection || 'nhiều'}`}</p>
                                         <div className="mt-2 space-y-2">
                                             {groupToppings.map(option => {
-                                                const isChecked = group.type === 'single'
-                                                    ? selectedOptions[group.id] === option.id
-                                                    : (selectedOptions[group.id] || []).includes(option.id);
-
+                                                const isChecked = group.type === 'single' ? selectedOptions[group.id] === option.id : (selectedOptions[group.id] || []).includes(option.id);
                                                 return (
                                                     <label key={option.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                                                        <div>
-                                                            <p className="font-medium text-neutral-700">{option.name}</p>
-                                                            <p className="text-sm brand-color font-semibold">+{vnd(option.price)}</p>
-                                                        </div>
-                                                        <input
-                                                            type={group.type === 'single' ? 'radio' : 'checkbox'}
-                                                            name={`group-${group.id}`}
-                                                            checked={isChecked}
-                                                            onChange={() => handleOptionChange(group, option.id)}
-                                                            className="h-5 w-5 rounded-full border-neutral-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
-                                                        />
+                                                        <div><p className="font-medium text-neutral-700">{option.name}</p><p className="text-sm brand-color font-semibold">+{vnd(option.price)}</p></div>
+                                                        <input type={group.type === 'single' ? 'radio' : 'checkbox'} name={`group-${group.id}`} checked={isChecked} onChange={() => handleOptionChange(group, option.id)} className="h-5 w-5 rounded-full border-neutral-300 text-orange-600 focus:ring-orange-500 cursor-pointer" />
                                                     </label>
                                                 );
                                             })}
@@ -225,7 +158,7 @@
                                 <Textarea className="mt-2" value={note} onChange={e => setNote(e.target.value)} placeholder="Dặn dò thêm cho quán..."/>
                             </div>
                         </div>
-                        <div className="flex-shrink-0 p-3 border-t bg-white/80 backdrop-blur-lg flex items-center justify-between gap-3">
+                        <div className="flex-shrink-0 p-3 border-t bg-white/80 backdrop-blur-lg flex items-center justify-between gap-3 pb-safe">
                             <div className="flex items-center gap-2">
                                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="h-10 w-10 flex items-center justify-center rounded-full border bg-neutral-100 text-neutral-700 font-bold text-xl">-</button>
                                <span className="font-bold text-xl w-8 text-center">{quantity}</span>
@@ -237,51 +170,50 @@
                 </div>
             )
         }
-
+        
+        // CẬP NHẬT: Giao diện trang Cảm ơn
         const ThankYouPage = ({ order, onNewOrder }) => {
             if (!order) return null;
 
             const getStatusDisplay = (status) => {
-              const normalizedStatus = typeof status === 'string' ? status.trim().toLowerCase() : '';
-              switch (normalizedStatus) {
-                  case 'pending': return { text: 'Đang chờ xác nhận', className: 'bg-yellow-100 text-yellow-800' };
-                  case 'confirmed': return { text: 'Quán đã xác nhận', className: 'bg-green-100 text-green-800' };
-                  case 'processing': return { text: 'Đang thực hiện', className: 'bg-blue-100 text-blue-800' };
-                  case 'preparing': return { text: 'Đang chuẩn bị', className: 'bg-blue-100 text-blue-800' };
-                  case 'ready': return { text: 'Sẵn sàng giao', className: 'bg-purple-100 text-purple-800' };
-                  case 'completed': return { text: 'Hoàn thành', className: 'bg-green-100 text-green-800' };
-                  case 'cancelled':
-                  case 'canceled': return { text: 'Đã hủy', className: 'bg-red-100 text-red-800' };
-                  default: return { text: 'Không xác định', className: 'bg-gray-100 text-gray-800' };
+              const s = typeof status === 'string' ? status.trim().toLowerCase() : '';
+              switch (s) {
+                  case 'pending': return { text: 'Đang chờ xác nhận', className: 'text-yellow-600' };
+                  case 'confirmed': return { text: 'Quán đã xác nhận', className: 'text-green-600' };
+                  case 'processing': case 'preparing': return { text: 'Đang thực hiện', className: 'text-blue-600' };
+                  case 'ready': return { text: 'Sẵn sàng giao', className: 'text-purple-600' };
+                  case 'completed': return { text: 'Hoàn thành', className: 'text-green-700' };
+                  case 'cancelled': case 'canceled': return { text: 'Đã hủy', className: 'text-red-600' };
+                  default: return { text: 'Không xác định', className: 'text-gray-600' };
               }
             };
             const statusDisplay = getStatusDisplay(order.status);
 
             return (
-                <div className="flex flex-col items-center text-center pt-10 pb-16 px-4">
-                    <CheckCircleIcon />
-                    <h2 className="text-xl font-bold mt-4">Đặt hàng thành công!</h2>
+                <div className="flex flex-col items-center text-center pt-8 pb-16 px-4">
+                    <div className="text-green-500"><SuccessIcon/></div>
+                    <h2 className="text-2xl font-bold mt-4">Đặt hàng thành công!</h2>
                     <p className="text-neutral-500 mt-2 text-sm max-w-xs mx-auto">Cảm ơn bạn đã tin tưởng. Vui lòng theo dõi trạng thái đơn hàng dưới đây.</p>
-                    <div className="w-full max-w-sm mt-6 text-left border rounded-lg p-4 bg-white shadow-sm">
-                         <h3 className="font-semibold border-b pb-2 text-sm">Tóm tắt đơn hàng #{String(order.createdAt).slice(-6)}</h3>
-                         <ul className="text-sm space-y-2 py-3">
+                    <div className="w-full max-w-sm mt-8 text-left rounded-lg p-4 bg-white shadow-sm border">
+                         <h3 className="font-semibold pb-3 text-base border-b text-neutral-800">Tóm tắt đơn hàng #{String(order.createdAt).slice(-6)}</h3>
+                         <ul className="text-sm divide-y text-neutral-700">
                              {order.items.map((item) => (
-                                 <li key={item.cartId || item.name} className="flex justify-between">
+                                 <li key={item.cartId || item.name} className="flex justify-between py-3">
                                      <span>{item.qty} x {item.name}</span>
                                      <span className="font-medium">{vnd(item.qty * item.totalPrice)}</span>
                                  </li>
                              ))}
                          </ul>
-                         <div className="border-t pt-2 flex justify-between font-bold text-sm">
+                         <div className="border-t pt-3 flex justify-between font-bold text-base text-neutral-800">
                              <span>Tổng cộng</span>
                              <span>{vnd(order.total)}</span>
                          </div>
-                         <div className="mt-2 pt-2 border-t text-sm flex justify-between items-center">
-                            <span>Trạng thái:</span>
-                            <span className={`font-semibold px-2 py-1 rounded-full text-xs ${statusDisplay.className}`}>{statusDisplay.text}</span>
+                         <div className="mt-3 pt-3 border-t text-sm flex justify-between items-center">
+                            <span className="text-neutral-600">Trạng thái:</span>
+                            <span className={`font-bold ${statusDisplay.className}`}>{statusDisplay.text}</span>
                          </div>
                     </div>
-                    <Button className="w-full max-w-sm mt-6 rounded-lg" onClick={onNewOrder}>Đặt đơn hàng mới</Button>
+                    <Button className="w-full max-w-sm mt-8 rounded-lg h-12 text-base" onClick={onNewOrder}>Đặt đơn hàng mới</Button>
                 </div>
             );
         };
@@ -310,7 +242,6 @@
             );
         };
         
-        // ===== Main App Component =====
         function App() {
           const [menu, setMenu] = useState([]);
           const [categories, setCategories] = useState([]);
@@ -347,26 +278,22 @@
                 { name: "toppingGroups", setter: setToppingGroups, query: query(collection(db, "toppingGroups"), orderBy("name", "asc")) },
                 { name: "toppings", setter: setToppings, query: query(collection(db, "toppings")) }
             ];
-            collectionsToFetch.forEach(({ name, setter, query }) => {
-                unsubscribers.push(onSnapshot(query, (snapshot) => {
+            collectionsToFetch.forEach(({ name, setter, query: q }) => {
+                unsubscribers.push(onSnapshot(q, (snapshot) => {
                      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                      setter(data);
-                     if (name === "categories" && data.length > 0 && activeCategory === '') {
-                        setActiveCategory(data[0].name);
-                     }
+                     if (name === "categories" && data.length > 0 && !activeCategory) setActiveCategory(data[0].name);
                 }));
             });
             const storeStatusRef = doc(db, "settings", "storeStatus");
             unsubscribers.push(onSnapshot(storeStatusRef, (doc) => doc.exists() ? setStoreStatus(doc.data()) : setDoc(doc.ref, { isOpen: true })));
             
-            const loadingTimeout = setTimeout(() => {
-                if (menu.length === 0) setLoading(false);
-            }, 5000);
+            const loadingTimeout = setTimeout(() => setLoading(false), 5000);
             return () => { unsubscribers.forEach(unsub => unsub()); clearTimeout(loadingTimeout); };
           }, []);
            
           useEffect(() => {
-            if (lastOrder && lastOrder.id) {
+            if (lastOrder?.id) {
                 const orderRef = doc(db, "orders", lastOrder.id);
                 const unsubscribe = onSnapshot(orderRef, (doc) => {
                     if (doc.exists()) {
@@ -380,144 +307,72 @@
           }, [lastOrder?.id]);
 
           const handleAddToCart = (item, quantity, note, selectedToppings) => {
-              setCart(prevCart => {
-                  const optionsPrice = selectedToppings.reduce((sum, t) => sum + t.price, 0);
-                  const totalPrice = item.price + optionsPrice;
-                  
-                  const newCartItem = {
-                      cartId: `${item.id}-${Date.now()}`,
-                      id: item.id,
-                      name: item.name,
-                      totalPrice: totalPrice,
-                      qty: quantity,
-                      note,
-                      selectedToppings
-                  };
-                  return [...prevCart, newCartItem];
-              });
+              const optionsPrice = selectedToppings.reduce((sum, t) => sum + t.price, 0);
+              const newCartItem = { cartId: `${item.id}-${Date.now()}`, id: item.id, name: item.name, totalPrice: item.price + optionsPrice, qty: quantity, note, selectedToppings };
+              setCart(prev => [...prev, newCartItem]);
           };
 
           const addOrIncreaseSimpleItem = (item) => {
               if (!item.available || !storeStatus.isOpen) return;
-              setCart(prevCart => {
-                  const existingSimpleItem = prevCart.find(cartItem => 
-                      cartItem.id === item.id && 
-                      (!cartItem.selectedToppings || cartItem.selectedToppings.length === 0) &&
-                      !cartItem.note
-                  );
-
-                  if (existingSimpleItem) {
-                      return prevCart.map(cartItem =>
-                          cartItem.cartId === existingSimpleItem.cartId
-                              ? { ...cartItem, qty: cartItem.qty + 1 }
-                              : cartItem
-                      );
-                  } else {
-                      const newCartItem = {
-                          cartId: `${item.id}-${Date.now()}`,
-                          id: item.id,
-                          name: item.name,
-                          totalPrice: item.price,
-                          qty: 1,
-                          note: '',
-                          selectedToppings: []
-                      };
-                      return [...prevCart, newCartItem];
-                  }
+              setCart(prev => {
+                  const existing = prev.find(ci => ci.id === item.id && !ci.selectedToppings?.length && !ci.note);
+                  if (existing) return prev.map(ci => ci.cartId === existing.cartId ? { ...ci, qty: ci.qty + 1 } : ci);
+                  return [...prev, { cartId: `${item.id}-${Date.now()}`, id: item.id, name: item.name, totalPrice: item.price, qty: 1, note: '', selectedToppings: [] }];
               });
           };
 
           const decreaseSimpleItem = (itemId) => {
-              setCart(prevCart => {
-                  const existingItem = prevCart.find(c => c.id === itemId && (!c.selectedToppings || c.selectedToppings.length === 0));
-                  if (!existingItem) return prevCart;
-                  if (existingItem.qty === 1) {
-                      return prevCart.filter(c => c.cartId !== existingItem.cartId);
-                  }
-                  return prevCart.map(c => c.cartId === existingItem.cartId ? { ...c, qty: c.qty - 1 } : c);
+              setCart(prev => {
+                  const existing = prev.find(c => c.id === itemId && !c.selectedToppings?.length);
+                  if (!existing) return prev;
+                  if (existing.qty === 1) return prev.filter(c => c.cartId !== existing.cartId);
+                  return prev.map(c => c.cartId === existing.cartId ? { ...c, qty: c.qty - 1 } : c);
               });
           };
           
-          const increaseCartQty = (cartId) => {
-              setCart(cart.map(item => item.cartId === cartId ? {...item, qty: item.qty + 1} : item));
-          };
-          
-          const decreaseCartQty = (cartId) => {
-              setCart(cart.map(item => item.cartId === cartId ? {...item, qty: Math.max(0, item.qty - 1)} : item).filter(item => item.qty > 0));
-          };
+          const increaseCartQty = (cartId) => setCart(cart.map(i => i.cartId === cartId ? {...i, qty: i.qty + 1} : i));
+          const decreaseCartQty = (cartId) => setCart(cart.map(i => i.cartId === cartId ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0));
 
           const totalCartPrice = useMemo(() => cart.reduce((sum, item) => sum + (item.totalPrice * item.qty), 0), [cart]);
 
           const displayMenu = useMemo(() => {
-            return categories
-              .map(cat => ({
-                category: cat.name,
-                items: menu.filter(item => item.category === cat.name)
-              }))
-              .filter(group => group.items.length > 0);
+            return categories.map(cat => ({ category: cat.name, items: menu.filter(item => item.category === cat.name) })).filter(g => g.items.length > 0);
           }, [menu, categories]);
 
           const scrollToCategory = (categoryName) => {
-            const element = document.getElementById(`category-${categoryName}`);
-            if (element) {
-                const headerOffset = 60;
-                const elementPosition = element.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+            const el = document.getElementById(`category-${categoryName}`);
+            if (el) {
+                const offset = 60;
+                const bodyRect = document.body.getBoundingClientRect().top;
+                const elRect = el.getBoundingClientRect().top;
+                const elPos = elRect - bodyRect;
+                const offsetPos = elPos - offset;
+                window.scrollTo({ top: offsetPos, behavior: "smooth" });
                 setActiveCategory(categoryName);
             }
           };
 
           const handleItemClick = (item) => {
               if (!item.available || !storeStatus.isOpen) return;
-              const hasToppings = item.toppingGroupIds && item.toppingGroupIds.length > 0;
-              if (hasToppings) {
-                  setSelectedItem(item);
-              } else {
-                  addOrIncreaseSimpleItem(item);
-              }
+              item.toppingGroupIds?.length ? setSelectedItem(item) : addOrIncreaseSimpleItem(item);
           };
 
           const checkout = async () => {
-              const phoneRegex = /^0\d{9}$/;
-              if (!phoneRegex.test(contact)) {
-                  setValidationError('Số điện thoại không hợp lệ.');
-                  return;
-              }
+              if (!/^0\d{9}$/.test(contact)) { setValidationError('Số điện thoại không hợp lệ.'); return; }
               if (cart.length === 0) return;
               setValidationError('');
-
               try {
-                  const itemsToSave = cart.map(item => ({
-                      cartId: item.cartId,
-                      name: item.name,
-                      qty: item.qty,
-                      totalPrice: item.totalPrice,
-                      note: item.note || '',
-                      selectedToppings: item.selectedToppings.map(t => ({ name: t.name, price: t.price }))
-                  }));
-
-                  const orderData = { 
-                      items: itemsToSave, 
-                      total: totalCartPrice, 
-                      contact: contact.trim(), 
-                      status: "pending", 
-                      payment: paymentMethod, 
-                      createdAt: Date.now() 
-                  };
+                  const items = cart.map(i => ({ name: i.name, qty: i.qty, totalPrice: i.totalPrice, note: i.note || '', selectedToppings: i.selectedToppings.map(t => ({ name: t.name, price: t.price })) }));
+                  const orderData = { items, total: totalCartPrice, contact: contact.trim(), status: "pending", payment: paymentMethod, createdAt: Date.now() };
                   const docRef = await addDoc(collection(db, "orders"), orderData);
                   const finalOrder = { id: docRef.id, ...orderData };
-                  
                   localStorage.setItem('banhMiOngKoiContact', contact.trim());
                   localStorage.setItem('banhMiOngKoiLastOrder', JSON.stringify(finalOrder));
                   setLastOrder(finalOrder);
                   setView('thankyou');
                   setCart([]);
                   setOpenCart(false);
-              } catch (error) { 
-                  console.error("Error placing order: ", error); 
-                  setValidationError("Lỗi khi đặt hàng, vui lòng thử lại.");
-              }
+              } catch (error) { setValidationError("Lỗi khi đặt hàng, vui lòng thử lại."); }
           };
 
           const handleNewOrderClick = () => {
@@ -530,19 +385,16 @@
           if (loading && menu.length === 0) {
               return (
                 <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
-                    <svg className="animate-spin h-8 w-8 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <svg className="animate-spin h-8 w-8 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     <p className="mt-3 text-neutral-600">Đang tải thực đơn...</p>
                 </div>
               );
           }
 
           return (
-            <div className="min-h-screen">
+            <div className="min-h-screen max-w-md mx-auto">
               <header className="bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-md">
-                <div className="max-w-md mx-auto px-4 py-4 text-center">
+                <div className="px-4 py-4 text-center">
                   <h1 className="font-bold text-2xl">BÁNH MÌ ÔNG KÒI</h1>
                   <p className="text-sm text-orange-100 mt-1">Giao hàng tận nơi</p>
                    <div className="mt-3 text-sm text-orange-100 space-y-1 border-t border-white/20 pt-3">
@@ -551,52 +403,40 @@
                   </div>
                 </div>
               </header>
-
-              <main className="max-w-md mx-auto pb-28">
+              
+              <main className="pb-32">
                 {view === 'menu' ? (
                   <>
                     {!storeStatus.isOpen && (<div className="p-4 m-4 text-center bg-red-100 text-red-800 rounded-lg"><p className="font-bold">Cửa hàng đang tạm đóng cửa!</p><p className="text-sm">Xin lỗi quý khách vì sự bất tiện này.</p></div>)}
-                    
                     <nav className="sticky top-0 bg-neutral-100/80 backdrop-blur-sm z-30 py-3 border-y">
-                        <div className="max-w-md mx-auto px-4">
-                            <div className="flex space-x-4 overflow-x-auto scrollbar-hide">
-                                {displayMenu.map(group => (
-                                    <button key={group.category} onClick={() => scrollToCategory(group.category)} className={`px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${activeCategory === group.category ? `brand-bg text-white` : 'bg-white text-neutral-700 shadow-sm'}`}>
-                                        {group.category}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        <div className="px-4"><div className="flex space-x-4 overflow-x-auto scrollbar-hide">
+                            {displayMenu.map(g => <button key={g.category} onClick={() => scrollToCategory(g.category)} className={`px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${activeCategory === g.category ? `brand-bg text-white` : 'bg-white text-neutral-700 shadow-sm'}`}>{g.category}</button>)}
+                        </div></div>
                     </nav>
-
                     <div className="mt-5 space-y-6 px-4">
                         {displayMenu.map(group => (
                             <section key={group.category} id={`category-${group.category}`}>
                                 <h3 className="text-xl font-bold mb-4 text-neutral-800">{group.category}</h3>
                                 <div className="space-y-3">
                                     {group.items.map(m => {
-                                        const simpleCartItem = cart.find(c => c.id === m.id && (!c.selectedToppings || c.selectedToppings.length === 0));
-                                        const qty = simpleCartItem ? simpleCartItem.qty : 0;
-
+                                        const simpleCartItem = cart.find(c => c.id === m.id && !c.selectedToppings?.length);
                                         return (
                                             <Card key={m.id} onClick={() => handleItemClick(m)} className={`relative ${m.available && storeStatus.isOpen ? 'cursor-pointer active:bg-neutral-50' : ''}`}>
                                                 <div className="flex items-center p-3 gap-3">
                                                     <img src={m.photo} alt={m.name} className="w-24 h-24 object-cover rounded-md flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/>
                                                     <div className="flex-grow self-start">
                                                         <h4 className="font-bold text-base leading-tight">{m.name}</h4>
-                                                        {m.description && (<p className="text-sm text-neutral-500 mt-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.description}</p>)}
+                                                        {m.description && <p className="text-sm text-neutral-500 mt-1 line-clamp-2">{m.description}</p>}
                                                         <p className="font-semibold mt-2 text-base brand-color">{vnd(m.price)}</p>
                                                     </div>
                                                     <div className="flex-shrink-0 self-end">
-                                                        {qty > 0 ? (
+                                                        {simpleCartItem?.qty > 0 ? (
                                                             <div className="flex items-center gap-2">
                                                                 <button onClick={(e) => {e.stopPropagation(); decreaseSimpleItem(m.id)}} className="rounded-full w-8 h-8 flex items-center justify-center border bg-white"><MinusIcon/></button>
-                                                                <span className="font-bold w-6 text-center">{qty}</span>
+                                                                <span className="font-bold w-6 text-center">{simpleCartItem.qty}</span>
                                                                 <button onClick={(e) => {e.stopPropagation(); addOrIncreaseSimpleItem(m)}} className="rounded-full w-8 h-8 flex items-center justify-center brand-bg text-white"><PlusIcon/></button>
                                                             </div>
-                                                        ) : (
-                                                            <button onClick={(e) => {e.stopPropagation(); handleItemClick(m)}} className="h-8 w-8 flex items-center justify-center rounded-full brand-bg text-white shadow"><PlusIcon/></button>
-                                                        )}
+                                                        ) : ( <button onClick={(e) => {e.stopPropagation(); handleItemClick(m)}} className="h-8 w-8 flex items-center justify-center rounded-full brand-bg text-white shadow"><PlusIcon/></button> )}
                                                     </div>
                                                 </div>
                                                 {!m.available && <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl"><span className="text-black font-semibold border bg-white px-2 py-1 rounded-md">Hết hàng</span></div>}
@@ -608,13 +448,11 @@
                         ))}
                     </div>
                   </>
-                ) : (
-                  <ThankYouPage order={lastOrder} onNewOrder={handleNewOrderClick} />
-                )}
+                ) : ( <ThankYouPage order={lastOrder} onNewOrder={handleNewOrderClick} /> )}
               </main>
 
               {view === 'menu' && cart.length > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 z-30"><div className="max-w-md mx-auto p-2">
+                <div className="fixed bottom-0 left-0 right-0 z-30"><div className="max-w-md mx-auto p-2 pb-safe">
                     <Button className="w-full h-12 rounded-xl text-base shadow-lg" onClick={()=> setOpenCart(true)}>
                         <div className="flex items-center justify-between w-full px-4">
                             <span>{cart.reduce((s,i)=>s+i.qty,0)} món</span>
@@ -627,36 +465,30 @@
               {view === 'menu' && openCart && (
                  <div className="fixed inset-0 z-50 flex flex-col justify-end">
                   <div className="absolute inset-0 bg-black/60" onClick={() => setOpenCart(false)}></div>
-                  <div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[85vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}>
+                  <div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[80vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}>
                       <div className="p-4 border-b flex-shrink-0"><h2 className="text-lg font-semibold text-center">Tóm tắt đơn hàng</h2></div>
                       <div className="flex-1 p-4 space-y-3 overflow-y-auto">
                         {cart.map(c => (
-                            <Card key={c.cartId}>
-                                <div className="p-3">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex-grow">
-                                            <p className="font-medium">{c.name}</p>
-                                             {c.selectedToppings.length > 0 && (
-                                               <div className="pl-2 mt-1 text-xs text-neutral-500 border-l-2 ml-1 space-y-0.5">
-                                                   {c.selectedToppings.map(t => <p key={t.id}>+ {t.name}</p>)}
-                                               </div>
-                                           )}
-                                            {c.note && <p className="text-xs text-blue-600 mt-1">Ghi chú: {c.note}</p>}
-                                        </div>
-                                        <div className="flex flex-col items-end shrink-0">
-                                            <p className="font-semibold">{vnd(c.totalPrice * c.qty)}</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <button className="rounded-full w-7 h-7 flex items-center justify-center border bg-neutral-100" onClick={()=>decreaseCartQty(c.cartId)}><MinusIcon/></button>
-                                                <span className="font-bold w-6 text-center">{c.qty}</span>
-                                                <button className="rounded-full w-7 h-7 flex items-center justify-center border bg-neutral-100" onClick={()=>increaseCartQty(c.cartId)}><PlusIcon/></button>
-                                            </div>
+                            <Card key={c.cartId}><div className="p-3">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-grow">
+                                        <p className="font-medium">{c.name}</p>
+                                        {c.selectedToppings.length > 0 && <div className="pl-2 mt-1 text-xs text-neutral-500 border-l-2 ml-1 space-y-0.5">{c.selectedToppings.map(t => <p key={t.id}>+ {t.name}</p>)}</div>}
+                                        {c.note && <p className="text-xs text-blue-600 mt-1">Ghi chú: {c.note}</p>}
+                                    </div>
+                                    <div className="flex flex-col items-end shrink-0">
+                                        <p className="font-semibold">{vnd(c.totalPrice * c.qty)}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <button className="rounded-full w-7 h-7 flex items-center justify-center border bg-neutral-100" onClick={()=>decreaseCartQty(c.cartId)}><MinusIcon/></button>
+                                            <span className="font-bold w-6 text-center">{c.qty}</span>
+                                            <button className="rounded-full w-7 h-7 flex items-center justify-center border bg-neutral-100" onClick={()=>increaseCartQty(c.cartId)}><PlusIcon/></button>
                                         </div>
                                     </div>
                                 </div>
-                            </Card>
+                            </div></Card>
                         ))}
                       </div>
-                      <div className="p-3 border-t bg-white space-y-2 flex-shrink-0">
+                      <div className="p-3 border-t bg-white space-y-2 flex-shrink-0 pb-safe">
                           <div>
                             <Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={e => setContact(e.target.value)} type="tel" maxLength={10} />
                             {validationError && <p className="text-red-500 text-xs mt-1">{validationError}</p>}
