@@ -82,14 +82,24 @@
                 const defaultSelections = {};
                 relevantGroups.forEach(group => {
                     if (group.required) {
-                         const firstOption = allToppings.find(t => t.groupId === group.id && t.available);
-                         if(firstOption) {
-                             if(group.type === 'single') {
-                                 defaultSelections[group.id] = firstOption.id;
-                             } else {
-                                 defaultSelections[group.id] = [firstOption.id];
-                             }
-                         }
+                        let defaultOption;
+                        // Logic mới: Ưu tiên chọn 'Vừa' làm mặc định cho nhóm 'Kích cỡ'
+                        if (group.name && group.name.toLowerCase().includes('kích cỡ')) {
+                           defaultOption = allToppings.find(t => t.groupId === group.id && t.available && t.name.toLowerCase() === 'vừa');
+                        }
+                        
+                        // Nếu không phải nhóm kích cỡ hoặc không tìm thấy size 'Vừa', dùng logic cũ
+                        if (!defaultOption) {
+                           defaultOption = allToppings.find(t => t.groupId === group.id && t.available);
+                        }
+
+                        if (defaultOption) {
+                            if (group.type === 'single') {
+                                defaultSelections[group.id] = defaultOption.id;
+                            } else {
+                                defaultSelections[group.id] = [defaultOption.id];
+                            }
+                        }
                     }
                 });
                 setSelectedOptions(defaultSelections);
@@ -99,12 +109,10 @@
                 const currentSelection = selectedOptions[group.id];
 
                 if (group.type === 'single') {
-                    // Cho phép bỏ chọn nếu nhấn lại vào radio button đã chọn
                     const newSelection = currentSelection === optionId ? null : optionId;
                     setSelectedOptions({ ...selectedOptions, [group.id]: newSelection });
                 } else { // multiple
                     const currentArray = currentSelection || [];
-                    // Xóa topping nếu đã có, hoặc thêm vào nếu chưa có
                     const newSelection = currentArray.includes(optionId)
                         ? currentArray.filter(id => id !== optionId)
                         : [...currentArray, optionId];
@@ -119,7 +127,7 @@
                 let optionsPrice = 0;
                 for (const groupId in selectedOptions) {
                     const selection = selectedOptions[groupId];
-                    if (!selection) continue; // Bỏ qua nếu lựa chọn là null (đã bỏ chọn)
+                    if (!selection) continue;
 
                     if (Array.isArray(selection)) { // multiple
                         selection.forEach(optionId => {
@@ -140,7 +148,7 @@
                      const group = allToppingGroups.find(g => g.id === groupId);
                      const selection = selectedOptions[groupId];
 
-                     if (!selection) continue; // Bỏ qua các group không có lựa chọn
+                     if (!selection) continue;
 
                      if(Array.isArray(selection)){
                          selection.forEach(optionId => {
@@ -159,7 +167,7 @@
             return (
                 <div className="fixed inset-0 z-50 flex items-end">
                     <div className="absolute inset-0 bg-black/40" onClick={onClose}></div>
-                    <div className="relative bg-neutral-100 w-full rounded-t-2xl flex flex-col max-h-[90vh]">
+                    <div className="relative bg-neutral-100 w-full rounded-t-2xl flex flex-col max-h-[85vh]">
                          <div className="flex-shrink-0 p-4">
                             <img src={item.photo} alt={item.name} className="w-full h-48 object-cover rounded-xl"/>
                             <h2 className="text-2xl font-bold mt-3 text-slate-800">{item.name}</h2>
@@ -167,8 +175,19 @@
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                              {relevantGroups.map(group => {
-                                const groupToppings = allToppings.filter(t => t.groupId === group.id && t.available);
+                                let groupToppings = allToppings.filter(t => t.groupId === group.id && t.available);
                                 if (groupToppings.length === 0) return null;
+
+                                // Logic mới: Sắp xếp các lựa chọn trong nhóm 'Kích cỡ'
+                                if (group.name && group.name.toLowerCase().includes('kích cỡ')) {
+                                    const sizeOrder = ['nhỏ', 'vừa', 'lớn'];
+                                    groupToppings.sort((a, b) => {
+                                        const aIndex = sizeOrder.indexOf(a.name.toLowerCase());
+                                        const bIndex = sizeOrder.indexOf(b.name.toLowerCase());
+                                        return aIndex - bIndex;
+                                    });
+                                }
+
                                 return (
                                     <div key={group.id}>
                                         <h3 className="font-semibold text-neutral-800">{group.name} {group.required && <span className="text-red-500">*</span>}</h3>
@@ -177,7 +196,6 @@
                                         </p>
                                         <div className="mt-2 space-y-2">
                                             {groupToppings.map(option => {
-                                                // Logic kiểm tra trạng thái checked đã được sửa lại cho chính xác
                                                 const isChecked = group.type === 'single'
                                                     ? selectedOptions[group.id] === option.id
                                                     : (selectedOptions[group.id] || []).includes(option.id);
@@ -209,9 +227,9 @@
                         </div>
                         <div className="flex-shrink-0 p-4 border-t bg-white/80 backdrop-blur-lg flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
-                               <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="h-10 w-10 flex items-center justify-center rounded-full border bg-neutral-100 text-neutral-700 font-bold text-lg">-</button>
-                               <span className="font-bold text-lg w-8 text-center">{quantity}</span>
-                               <button onClick={() => setQuantity(q => q + 1)} className="h-10 w-10 flex items-center justify-center rounded-full border bg-neutral-100 text-neutral-700 font-bold text-lg">+</button>
+                               <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="h-12 w-12 flex items-center justify-center rounded-full border bg-neutral-100 text-neutral-700 font-bold text-xl">-</button>
+                               <span className="font-bold text-xl w-10 text-center">{quantity}</span>
+                               <button onClick={() => setQuantity(q => q + 1)} className="h-12 w-12 flex items-center justify-center rounded-full border bg-neutral-100 text-neutral-700 font-bold text-xl">+</button>
                             </div>
                             <Button onClick={handleAddToCartClick} className="flex-1 h-12 rounded-xl font-semibold">Thêm vào giỏ - {vnd(total)}</Button>
                         </div>
@@ -224,9 +242,7 @@
             if (!order) return null;
 
             const getStatusDisplay = (status) => {
-              // Chuẩn hóa trạng thái để xử lý các trường hợp chữ hoa/thường hoặc khoảng trắng thừa
               const normalizedStatus = typeof status === 'string' ? status.trim().toLowerCase() : '';
-
               switch (normalizedStatus) {
                   case 'pending': return { text: 'Đang chờ xác nhận', className: 'bg-yellow-100 text-yellow-800' };
                   case 'confirmed': return { text: 'Quán đã xác nhận', className: 'bg-green-100 text-green-800' };
@@ -234,7 +250,7 @@
                   case 'preparing': return { text: 'Đang chuẩn bị', className: 'bg-blue-100 text-blue-800' };
                   case 'ready': return { text: 'Sẵn sàng giao', className: 'bg-purple-100 text-purple-800' };
                   case 'completed': return { text: 'Hoàn thành', className: 'bg-green-100 text-green-800' };
-                  case 'cancelled': return { text: 'Đã hủy', className: 'bg-red-100 text-red-800' };
+                  case 'cancelled':
                   case 'canceled': return { text: 'Đã hủy', className: 'bg-red-100 text-red-800' };
                   default: return { text: 'Không xác định', className: 'bg-gray-100 text-gray-800' };
               }
@@ -345,7 +361,9 @@
             const storeStatusRef = doc(db, "settings", "storeStatus");
             unsubscribers.push(onSnapshot(storeStatusRef, (doc) => doc.exists() ? setStoreStatus(doc.data()) : setDoc(doc.ref, { isOpen: true })));
             
-            const loadingTimeout = setTimeout(() => setLoading(false), 8000);
+            const loadingTimeout = setTimeout(() => {
+                if (menu.length === 0) setLoading(false);
+            }, 5000);
             return () => { unsubscribers.forEach(unsub => unsub()); clearTimeout(loadingTimeout); };
           }, []);
            
@@ -513,7 +531,7 @@
           if (loading && menu.length === 0) {
               return (
                 <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
-                    <svg className="animate-spin h-8 w-8 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24" fill="none">
+                    <svg className="animate-spin h-8 w-8 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -572,10 +590,10 @@
                                                     </div>
                                                     <div className="flex-shrink-0 self-end">
                                                         {qty > 0 ? (
-                                                            <div className="flex items-center gap-1">
-                                                                <button onClick={(e) => {e.stopPropagation(); decreaseSimpleItem(m.id)}} className="rounded-full w-7 h-7 flex items-center justify-center border bg-white"><MinusIcon/></button>
+                                                            <div className="flex items-center gap-2">
+                                                                <button onClick={(e) => {e.stopPropagation(); decreaseSimpleItem(m.id)}} className="rounded-full w-8 h-8 flex items-center justify-center border bg-white"><MinusIcon/></button>
                                                                 <span className="font-bold w-6 text-center">{qty}</span>
-                                                                <button onClick={(e) => {e.stopPropagation(); addOrIncreaseSimpleItem(m)}} className="rounded-full w-7 h-7 flex items-center justify-center brand-bg text-white"><PlusIcon/></button>
+                                                                <button onClick={(e) => {e.stopPropagation(); addOrIncreaseSimpleItem(m)}} className="rounded-full w-8 h-8 flex items-center justify-center brand-bg text-white"><PlusIcon/></button>
                                                             </div>
                                                         ) : (
                                                             <button onClick={(e) => {e.stopPropagation(); handleItemClick(m)}} className="h-9 w-9 flex items-center justify-center rounded-full brand-bg text-white shadow"><PlusIcon/></button>
@@ -610,29 +628,31 @@
               {view === 'menu' && openCart && (
                  <div className="fixed inset-0 z-50 flex flex-col justify-end">
                   <div className="absolute inset-0 bg-black/60" onClick={() => setOpenCart(false)}></div>
-                  <div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[80vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}>
+                  <div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[85vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}>
                       <div className="p-4 border-b flex-shrink-0"><h2 className="text-lg font-semibold text-center">Tóm tắt đơn hàng</h2></div>
                       <div className="flex-1 p-4 space-y-3 overflow-y-auto">
                         {cart.map(c => (
                             <Card key={c.cartId}>
                                 <div className="p-3">
                                     <div className="flex justify-between items-start">
-                                        <div className="flex-grow pr-4">
-                                            <p className="font-medium">{c.qty} x {c.name}</p>
+                                        <div className="flex-grow pr-2">
+                                            <p className="font-medium">{c.name}</p>
                                              {c.selectedToppings.length > 0 && (
-                                               <div className="pl-2 mt-1 text-xs text-neutral-500 border-l-2 ml-1">
+                                               <div className="pl-2 mt-1 text-xs text-neutral-500 border-l-2 ml-1 space-y-0.5">
                                                    {c.selectedToppings.map(t => <p key={t.id}>+ {t.name}</p>)}
                                                </div>
                                            )}
                                             {c.note && <p className="text-xs text-blue-600 mt-1">Ghi chú: {c.note}</p>}
                                         </div>
-                                        <div className="flex items-center gap-1 flex-shrink-0">
-                                            <button className="rounded-full w-7 h-7 flex items-center justify-center border" onClick={()=>decreaseCartQty(c.cartId)}><MinusIcon/></button>
+                                        <p className="font-semibold shrink-0">{vnd(c.totalPrice * c.qty)}</p>
+                                    </div>
+                                    <div className="flex justify-end mt-2">
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            <button className="rounded-full w-8 h-8 flex items-center justify-center border bg-neutral-100" onClick={()=>decreaseCartQty(c.cartId)}><MinusIcon/></button>
                                             <span className="font-bold w-6 text-center">{c.qty}</span>
-                                            <button className="rounded-full w-7 h-7 flex items-center justify-center border" onClick={()=>increaseCartQty(c.cartId)}><PlusIcon/></button>
+                                            <button className="rounded-full w-8 h-8 flex items-center justify-center border bg-neutral-100" onClick={()=>increaseCartQty(c.cartId)}><PlusIcon/></button>
                                         </div>
                                     </div>
-                                    <p className="text-right font-medium mt-2">{vnd(c.totalPrice * c.qty)}</p>
                                 </div>
                             </Card>
                         ))}
@@ -668,6 +688,5 @@
     </script>
 </body>
 </html>
-
 
 
