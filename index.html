@@ -224,9 +224,19 @@
             if (!order) return null;
 
             const getStatusDisplay = (status) => {
-              switch (status) {
-                  case 'pending': return { text: 'Đang chờ xác nhận', className: 'text-yellow-600' };
-                  default: return { text: 'Không xác định', className: 'text-gray-600' };
+              // Chuẩn hóa trạng thái để xử lý các trường hợp chữ hoa/thường hoặc khoảng trắng thừa
+              const normalizedStatus = typeof status === 'string' ? status.trim().toLowerCase() : '';
+
+              switch (normalizedStatus) {
+                  case 'pending': return { text: 'Đang chờ xác nhận', className: 'bg-yellow-100 text-yellow-800' };
+                  case 'confirmed': return { text: 'Quán đã xác nhận', className: 'bg-green-100 text-green-800' };
+                  case 'processing': return { text: 'Đang thực hiện', className: 'bg-blue-100 text-blue-800' };
+                  case 'preparing': return { text: 'Đang chuẩn bị', className: 'bg-blue-100 text-blue-800' };
+                  case 'ready': return { text: 'Sẵn sàng giao', className: 'bg-purple-100 text-purple-800' };
+                  case 'completed': return { text: 'Hoàn thành', className: 'bg-green-100 text-green-800' };
+                  case 'cancelled': return { text: 'Đã hủy', className: 'bg-red-100 text-red-800' };
+                  case 'canceled': return { text: 'Đã hủy', className: 'bg-red-100 text-red-800' };
+                  default: return { text: 'Không xác định', className: 'bg-gray-100 text-gray-800' };
               }
             };
             const statusDisplay = getStatusDisplay(order.status);
@@ -254,7 +264,7 @@
                          </div>
                          <div className="mt-2 pt-2 border-t text-sm flex justify-between items-center">
                             <span>Trạng thái:</span>
-                            <span className={`font-semibold ${statusDisplay.className}`}>{statusDisplay.text}</span>
+                            <span className={`font-semibold px-2 py-1 rounded-full text-xs ${statusDisplay.className}`}>{statusDisplay.text}</span>
                          </div>
                     </div>
                     <Button className="w-full max-w-sm mt-6 rounded-lg" onClick={onNewOrder}>Đặt đơn hàng mới</Button>
@@ -658,5 +668,6 @@
     </script>
 </body>
 </html>
+
 
 
