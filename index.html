@@ -17,6 +17,9 @@
         window.firebaseFirestore = { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, query, orderBy };
     </script>
     <style>
+        .brand-color { color: #fc6806; }
+        .brand-bg { background-color: #fc6806; }
+        .brand-ring:focus { --tw-ring-color: #fc6806; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         html { scroll-behavior: smooth; }
@@ -26,7 +29,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useEffect, useMemo, useState, useRef } = React;
+        const { useEffect, useMemo, useState, useRef, useCallback } = React;
         
         const { initializeApp } = window.firebaseApp;
         const { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, query, orderBy } = window.firebaseFirestore;
@@ -43,31 +46,164 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        const BRAND_COLOR = "#fc6806";
-
         // ===== Icon Components (SVG) =====
-        const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>;
-        const MinusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="5" x2="19" y1="12" y2="12"/></svg>;
-        const NoteIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-1.5 text-gray-400"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>;
-        const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-16 w-16 text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
-        const PhoneIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 mr-2 ${className}`}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>;
-        const MapPinIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 mr-2 ${className}`}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
-
-        // ===== Custom UI Components =====
-        const Button = ({ children, className, variant = 'default', size = 'default', ...props }) => {
-          const baseClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:opacity-50 disabled:pointer-events-none";
-          const variants = { default: `bg-[${BRAND_COLOR}] text-white hover:bg-opacity-90`, outline: "border border-gray-300 bg-transparent hover:bg-neutral-100" };
-          const sizes = { default: "h-10 py-2 px-4", sm: "h-9 px-3 rounded-md", icon: "h-10 w-10" };
-          return <button className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>{children}</button>;
-        };
-        const Card = ({ children, className, ...props }) => <div className={`rounded-xl border bg-white text-neutral-950 shadow-sm ${className}`} {...props}>{children}</div>;
-        const Input = ({ className, ...props }) => <input className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-400 ${className}`} {...props} />;
-        const Textarea = ({ className, ...props }) => <textarea className={`flex min-h-[60px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-400 ${className}`} {...props} />;
+        const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>;
+        const MinusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="5" x2="19" y1="12" y2="12"/></svg>;
+        const CheckCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-16 w-16 text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+        const PhoneIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 mr-2 ${className}`}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>;
+        const MapPinIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 mr-2 ${className}`}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
         
         const vnd = (n) => n.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
+        
+        // ===== UI Components =====
+        const Button = ({ children, className, variant="default", ...props }) => {
+            const baseClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none h-10 py-2 px-4";
+            const variants = {
+                default: "brand-bg text-white hover:opacity-90",
+                outline: "border border-gray-300 bg-transparent hover:bg-neutral-100",
+            };
+            return <button className={`${baseClasses} ${variants[variant]} ${className}`} {...props}>{children}</button>
+        };
+        const Card = ({ children, className, ...props }) => <div className={`rounded-xl border bg-white text-neutral-950 shadow-sm ${className}`} {...props}>{children}</div>;
+        const Input = ({ className, ...props }) => <input className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 brand-ring ${className}`} {...props} />;
+        const Textarea = ({ className, ...props }) => <textarea className={`flex min-h-[60px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 brand-ring ${className}`} {...props} />;
+
+        // Item Detail Modal to select toppings
+        const ItemDetailModal = ({ item, allToppingGroups, allToppings, onClose, onAddToCart }) => {
+            const [quantity, setQuantity] = useState(1);
+            const [note, setNote] = useState('');
+            const [selectedOptions, setSelectedOptions] = useState({});
+
+            const relevantGroups = useMemo(() => {
+                return allToppingGroups.filter(g => item.toppingGroupIds?.includes(g.id) && g.name);
+            }, [item, allToppingGroups]);
+
+            useEffect(() => {
+                const defaultSelections = {};
+                relevantGroups.forEach(group => {
+                    if (group.required) {
+                         const firstOption = allToppings.find(t => t.groupId === group.id && t.available);
+                         if(firstOption) {
+                             if(group.type === 'single') {
+                                 defaultSelections[group.id] = firstOption.id;
+                             } else {
+                                 defaultSelections[group.id] = [firstOption.id];
+                             }
+                         }
+                    }
+                });
+                setSelectedOptions(defaultSelections);
+            }, [relevantGroups, allToppings]);
+
+            const handleOptionChange = (group, optionId) => {
+                const currentSelection = selectedOptions[group.id] || [];
+                if (group.type === 'single') {
+                    setSelectedOptions({ ...selectedOptions, [group.id]: optionId });
+                } else { // multiple
+                    const newSelection = currentSelection.includes(optionId)
+                        ? newSelection.filter(id => id !== optionId)
+                        : [...currentSelection, optionId];
+                    if (newSelection.length > (group.maxSelection || 99)) return;
+                    setSelectedOptions({ ...selectedOptions, [group.id]: newSelection });
+                }
+            };
+            
+            const total = useMemo(() => {
+                let optionsPrice = 0;
+                for (const groupId in selectedOptions) {
+                    const selection = selectedOptions[groupId];
+                    if (Array.isArray(selection)) { // multiple
+                        selection.forEach(optionId => {
+                            const option = allToppings.find(t => t.id === optionId);
+                            if (option) optionsPrice += option.price;
+                        });
+                    } else { // single
+                        const option = allToppings.find(t => t.id === selection);
+                        if (option) optionsPrice += option.price;
+                    }
+                }
+                return (item.price + optionsPrice) * quantity;
+            }, [item, selectedOptions, quantity, allToppings]);
+            
+            const handleAddToCartClick = () => {
+                const finalSelectedToppings = [];
+                for (const groupId in selectedOptions) {
+                     const group = allToppingGroups.find(g => g.id === groupId);
+                     const selection = selectedOptions[groupId];
+                     if(Array.isArray(selection)){
+                         selection.forEach(optionId => {
+                             const option = allToppings.find(t => t.id === optionId);
+                             if(option) finalSelectedToppings.push({groupName: group.name, ...option});
+                         })
+                     } else {
+                         const option = allToppings.find(t => t.id === selection);
+                         if(option) finalSelectedToppings.push({groupName: group.name, ...option});
+                     }
+                }
+                onAddToCart(item, quantity, note, finalSelectedToppings);
+                onClose();
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-end">
+                    <div className="absolute inset-0 bg-black/40" onClick={onClose}></div>
+                    <div className="relative bg-neutral-100 w-full rounded-t-2xl flex flex-col max-h-[90vh]">
+                         <div className="flex-shrink-0 p-4">
+                            <img src={item.photo} alt={item.name} className="w-full h-48 object-cover rounded-xl"/>
+                            <h2 className="text-2xl font-bold mt-3 text-slate-800">{item.name}</h2>
+                            <p className="text-neutral-600 mt-1">{item.description}</p>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                             {relevantGroups.map(group => {
+                                const groupToppings = allToppings.filter(t => t.groupId === group.id && t.available);
+                                if (groupToppings.length === 0) return null;
+                                return (
+                                    <div key={group.id}>
+                                        <h3 className="font-semibold text-neutral-800">{group.name} {group.required && <span className="text-red-500">*</span>}</h3>
+                                        <p className="text-xs text-neutral-500">
+                                            {group.type === 'single' ? "Chọn 1" : `Chọn tối đa ${group.maxSelection || 'nhiều'}`}
+                                        </p>
+                                        <div className="mt-2 space-y-2">
+                                            {groupToppings.map(option => (
+                                                <label key={option.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
+                                                    <div>
+                                                        <p className="font-medium text-neutral-700">{option.name}</p>
+                                                        <p className="text-sm brand-color font-semibold">+{vnd(option.price)}</p>
+                                                    </div>
+                                                    <input
+                                                        type={group.type === 'single' ? 'radio' : 'checkbox'}
+                                                        name={`group-${group.id}`}
+                                                        checked={(selectedOptions[group.id] || []).includes(option.id)}
+                                                        onChange={() => handleOptionChange(group, option.id)}
+                                                        className="h-5 w-5 rounded-full border-neutral-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                                                    />
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            <div>
+                                <h3 className="font-semibold text-neutral-800">Ghi chú</h3>
+                                <Textarea className="mt-2" value={note} onChange={e => setNote(e.target.value)} placeholder="Dặn dò thêm cho quán..."/>
+                            </div>
+                        </div>
+                        <div className="flex-shrink-0 p-4 border-t bg-white/80 backdrop-blur-lg flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                               <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="h-10 w-10 flex items-center justify-center rounded-full border bg-neutral-100 text-neutral-700 font-bold text-lg">-</button>
+                               <span className="font-bold text-lg w-8 text-center">{quantity}</span>
+                               <button onClick={() => setQuantity(q => q + 1)} className="h-10 w-10 flex items-center justify-center rounded-full border bg-neutral-100 text-neutral-700 font-bold text-lg">+</button>
+                            </div>
+                            <Button onClick={handleAddToCartClick} className="flex-1 h-12 rounded-xl font-semibold">Thêm vào giỏ - {vnd(total)}</Button>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
 
         const ThankYouPage = ({ order, onNewOrder }) => {
             if (!order) return null;
+
             const getStatusDisplay = (status) => {
               switch (status) {
                   case 'pending': return { text: 'Đang chờ xác nhận', className: 'bg-yellow-100 text-yellow-800' };
@@ -78,20 +214,30 @@
               }
             };
             const statusDisplay = getStatusDisplay(order.status);
+
             return (
-                <div className="flex flex-col items-center justify-center text-center min-h-[70vh] px-4">
+                <div className="flex flex-col items-center justify-center text-center pt-10 pb-16 px-4">
                     <CheckCircleIcon />
                     <h2 className="text-2xl font-bold mt-4">Đặt hàng thành công!</h2>
                     <p className="text-neutral-600 mt-2">Cảm ơn bạn đã tin tưởng. Vui lòng theo dõi trạng thái đơn hàng dưới đây.</p>
-                    <div className="w-full max-w-sm mt-8 text-left border rounded-lg p-4 bg-white">
-                        {/* ===== START: THAY ĐỔI MÃ ĐƠN HÀNG ===== */}
-                        <h3 className="font-semibold border-b pb-2">Tóm tắt đơn hàng #{String(order.createdAt).slice(-6)}</h3>
-                        {/* ===== END: THAY ĐỔI MÃ ĐƠN HÀNG ===== */}
-                        <ul className="text-sm space-y-2 py-3">
-                            {order.items.map(item => (<li key={item.id} className="flex justify-between"><span>{item.qty} x {item.name}</span><span className="font-medium">{vnd(item.qty * item.price)}</span></li>))}
-                        </ul>
-                        <div className="border-t pt-2 flex justify-between font-bold"><span>Tổng cộng</span><span>{vnd(order.total)}</span></div>
-                        <div className="mt-2 text-sm">Trạng thái: <span className={`font-semibold px-2 py-1 rounded-full ${statusDisplay.className}`}>{statusDisplay.text}</span></div>
+                    <div className="w-full max-w-sm mt-8 text-left border rounded-lg p-4 bg-white shadow-sm">
+                         <h3 className="font-semibold border-b pb-2">Tóm tắt đơn hàng #{String(order.createdAt).slice(-6)}</h3>
+                         <ul className="text-sm space-y-2 py-3">
+                             {order.items.map((item, index) => (
+                                 <li key={index} className="flex justify-between">
+                                     <span>{item.qty} x {item.name}</span>
+                                     <span className="font-medium">{vnd(item.qty * item.totalPrice)}</span>
+                                 </li>
+                             ))}
+                         </ul>
+                         <div className="border-t pt-2 flex justify-between font-bold">
+                             <span>Tổng cộng</span>
+                             <span>{vnd(order.total)}</span>
+                         </div>
+                         <div className="mt-2 pt-2 border-t text-sm flex justify-between items-center">
+                            <span>Trạng thái:</span>
+                            <span className={`font-semibold px-2 py-0.5 rounded-full text-xs ${statusDisplay.className}`}>{statusDisplay.text}</span>
+                         </div>
                     </div>
                     <Button className="w-full max-w-sm mt-8" onClick={onNewOrder}>Đặt đơn hàng mới</Button>
                 </div>
@@ -108,89 +254,157 @@
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
                     <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-xs m-4 text-center">
                         <h3 className="text-lg font-semibold mb-2">Quét mã để thanh toán</h3>
-                        <p className="text-sm text-neutral-500 mb-4">Sử dụng app ngân hàng hoặc ví điện tử để quét mã VietQR.</p>
+                        <p className="text-sm text-neutral-500 mb-4">Sử dụng app ngân hàng hoặc ví điện tử của bạn.</p>
                         <img src={qrCodeUrl} alt="Mã QR thanh toán" className="w-full h-auto rounded-lg border" />
                         <div className="mt-4 text-sm text-left space-y-2">
-                            <p><strong>Số tiền:</strong> <span className="font-bold text-lg" style={{color: BRAND_COLOR}}>{vnd(total)}</span></p>
+                            <p><strong>Số tiền:</strong> <span className="font-bold text-lg brand-color">{vnd(total)}</span></p>
                             <p><strong>Chủ tài khoản:</strong> <span className="font-semibold">{accountName}</span></p>
                             <p><strong>Số tài khoản:</strong> <span className="font-semibold">{accountNumber}</span></p>
                             <p><strong>Ngân hàng:</strong> <span className="font-semibold">{bankName}</span></p>
                         </div>
-                        <Button variant="outline" className="w-full mt-6" onClick={onClose}>Đã hiểu</Button>
+                        <Button variant="outline" className="w-full mt-6" onClick={onClose}>Đóng</Button>
                     </div>
                 </div>
             );
         };
-
+        
+        // ===== Main App Component =====
         function App() {
-          const [view, setView] = useState('menu'); 
-          const [lastOrder, setLastOrder] = useState(null); 
           const [menu, setMenu] = useState([]);
           const [categories, setCategories] = useState([]);
+          const [toppingGroups, setToppingGroups] = useState([]);
+          const [toppings, setToppings] = useState([]);
           const [storeStatus, setStoreStatus] = useState({ isOpen: true });
           const [loading, setLoading] = useState(true);
           const [cart, setCart] = useState([]);
+          const [openCart, setOpenCart] = useState(false);
+          const [selectedItem, setSelectedItem] = useState(null);
           const [contact, setContact] = useState("");
           const [paymentMethod, setPaymentMethod] = useState("TIENMAT");
-          const [openCart, setOpenCart] = useState(false);
           const [activeCategory, setActiveCategory] = useState('');
+          const [view, setView] = useState('menu');
+          const [lastOrder, setLastOrder] = useState(null);
           const [showQrModal, setShowQrModal] = useState(false);
-
-          useEffect(() => {
-            const savedContact = localStorage.getItem('banhMiOngKoiContact');
-            if (savedContact) setContact(savedContact);
-            const savedOrder = localStorage.getItem('banhMiOngKoiLastOrder');
-            if (savedOrder) { setLastOrder(JSON.parse(savedOrder)); setView('thankyou'); }
-          }, []);
+          const [validationError, setValidationError] = useState('');
 
           useEffect(() => {
             const unsubscribers = [];
-            const menuQuery = query(collection(db, "menu"), orderBy("order", "asc"));
-            unsubscribers.push(onSnapshot(menuQuery, (snapshot) => {
-                const menuData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setMenu(menuData);
-                if (menuData.length > 0) setLoading(false);
-            }));
-            const categoriesQuery = query(collection(db, "categories"), orderBy("name", "asc"));
-            unsubscribers.push(onSnapshot(categoriesQuery, (snapshot) => {
-                const catData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setCategories(catData);
-                if(catData.length > 0 && activeCategory === '') setActiveCategory(catData[0].name);
-            }));
+            const collectionsToFetch = [
+                { name: "menu", setter: setMenu, query: query(collection(db, "menu"), orderBy("order", "asc")) },
+                { name: "categories", setter: setCategories, query: query(collection(db, "categories"), orderBy("name", "asc")) },
+                { name: "toppingGroups", setter: setToppingGroups, query: query(collection(db, "toppingGroups"), orderBy("name", "asc")) },
+                { name: "toppings", setter: setToppings, query: query(collection(db, "toppings")) }
+            ];
+            collectionsToFetch.forEach(({ name, setter, query }) => {
+                unsubscribers.push(onSnapshot(query, (snapshot) => {
+                     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                     setter(data);
+                     if (name === "categories" && data.length > 0 && activeCategory === '') {
+                        setActiveCategory(data[0].name);
+                     }
+                }));
+            });
             const storeStatusRef = doc(db, "settings", "storeStatus");
             unsubscribers.push(onSnapshot(storeStatusRef, (doc) => doc.exists() ? setStoreStatus(doc.data()) : setDoc(doc.ref, { isOpen: true })));
+            
             const loadingTimeout = setTimeout(() => setLoading(false), 8000);
             return () => { unsubscribers.forEach(unsub => unsub()); clearTimeout(loadingTimeout); };
           }, []);
-
+           
           useEffect(() => {
             if (lastOrder && lastOrder.id) {
                 const orderRef = doc(db, "orders", lastOrder.id);
                 const unsubscribe = onSnapshot(orderRef, (doc) => {
                     if (doc.exists()) {
-                        const updatedOrder = { id: doc.id, ...doc.data() };
-                        setLastOrder(updatedOrder);
-                        localStorage.setItem('banhMiOngKoiLastOrder', JSON.stringify(updatedOrder));
+                        setLastOrder(prev => ({...prev, ...doc.data()}));
                     }
                 });
                 return () => unsubscribe();
             }
           }, [lastOrder?.id]);
 
-          const total = useMemo(() => cart.reduce((s, i) => s + i.qty * i.price, 0), [cart]);
+          const handleAddToCart = (item, quantity, note, selectedToppings) => {
+              setCart(prevCart => {
+                  const optionsPrice = selectedToppings.reduce((sum, t) => sum + t.price, 0);
+                  const totalPrice = item.price + optionsPrice;
+                  
+                  const newCartItem = {
+                      cartId: `${item.id}-${Date.now()}`,
+                      id: item.id,
+                      name: item.name,
+                      totalPrice: totalPrice,
+                      qty: quantity,
+                      note,
+                      selectedToppings
+                  };
+                  return [...prevCart, newCartItem];
+              });
+          };
+
+          const addOrIncreaseSimpleItem = (item) => {
+              if (!item.available || !storeStatus.isOpen) return;
+              setCart(prevCart => {
+                  const existingSimpleItem = prevCart.find(cartItem => 
+                      cartItem.id === item.id && 
+                      (!cartItem.selectedToppings || cartItem.selectedToppings.length === 0) &&
+                      !cartItem.note
+                  );
+
+                  if (existingSimpleItem) {
+                      return prevCart.map(cartItem =>
+                          cartItem.cartId === existingSimpleItem.cartId
+                              ? { ...cartItem, qty: cartItem.qty + 1 }
+                              : cartItem
+                      );
+                  } else {
+                      const newCartItem = {
+                          cartId: `${item.id}-${Date.now()}`,
+                          id: item.id,
+                          name: item.name,
+                          totalPrice: item.price,
+                          qty: 1,
+                          note: '',
+                          selectedToppings: []
+                      };
+                      return [...prevCart, newCartItem];
+                  }
+              });
+          };
+
+          const decreaseSimpleItem = (itemId) => {
+              setCart(prevCart => {
+                  const existingItem = prevCart.find(c => c.id === itemId && (!c.selectedToppings || c.selectedToppings.length === 0));
+                  if (!existingItem) return prevCart;
+                  if (existingItem.qty === 1) {
+                      return prevCart.filter(c => c.cartId !== existingItem.cartId);
+                  }
+                  return prevCart.map(c => c.cartId === existingItem.cartId ? { ...c, qty: c.qty - 1 } : c);
+              });
+          };
+          
+          const increaseCartQty = (cartId) => {
+              setCart(cart.map(item => item.cartId === cartId ? {...item, qty: item.qty + 1} : item));
+          };
+          
+          const decreaseCartQty = (cartId) => {
+              setCart(cart.map(item => item.cartId === cartId ? {...item, qty: Math.max(0, item.qty - 1)} : item).filter(item => item.qty > 0));
+          };
+
+          const totalCartPrice = useMemo(() => cart.reduce((sum, item) => sum + (item.totalPrice * item.qty), 0), [cart]);
+
           const displayMenu = useMemo(() => {
-            const promoItems = menu.filter(item => item.isPromo && item.available);
-            const promoItemIds = new Set(promoItems.map(item => item.id));
-            const categorizedItems = categories
-              .map(cat => ({ category: cat.name, items: menu.filter(item => item.category === cat.name && !promoItemIds.has(item.id)) }))
+            return categories
+              .map(cat => ({
+                category: cat.name,
+                items: menu.filter(item => item.category === cat.name)
+              }))
               .filter(group => group.items.length > 0);
-            return { promos: promoItems, categorized: categorizedItems };
           }, [menu, categories]);
 
           const scrollToCategory = (categoryName) => {
             const element = document.getElementById(`category-${categoryName}`);
             if (element) {
-                const headerOffset = 80;
+                const headerOffset = 60;
                 const elementPosition = element.getBoundingClientRect().top;
                 const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
                 window.scrollTo({ top: offsetPosition, behavior: "smooth" });
@@ -198,54 +412,65 @@
             }
           };
 
-          const increaseQty = (m) => {
-            if (!storeStatus.isOpen || !m.available) return;
-            setCart(prevCart => {
-                const existingItem = prevCart.find(c => c.id === m.id);
-                if (existingItem) return prevCart.map(c => c.id === m.id ? { ...c, qty: c.qty + 1 } : c);
-                return [...prevCart, { id: m.id, name: m.name, price: m.price, qty: 1, note: '' }];
-            });
+          const handleItemClick = (item) => {
+              if (!item.available || !storeStatus.isOpen) return;
+              const hasToppings = item.toppingGroupIds && item.toppingGroupIds.length > 0;
+              if (hasToppings) {
+                  setSelectedItem(item);
+              } else {
+                  addOrIncreaseSimpleItem(item);
+              }
           };
-          const decreaseQty = (id) => {
-            setCart(prevCart => {
-                const existingItem = prevCart.find(c => c.id === id);
-                if (!existingItem) return prevCart;
-                if (existingItem.qty === 1) return prevCart.filter(c => c.id !== id);
-                return prevCart.map(c => c.id === id ? { ...c, qty: c.qty - 1 } : c);
-            });
-          };
-          const updateCartItemNote = (id, note) => { setCart(cart.map(item => item.id === id ? { ...item, note } : item)); };
-          
+
           const checkout = async () => {
-            const phoneRegex = /^0\d{9}$/;
-            if (!phoneRegex.test(contact)) { alert("Số điện thoại không hợp lệ. Vui lòng nhập 10 số, bắt đầu bằng 0."); return; }
-            if (cart.length === 0) return;
-            try {
-                const orderData = { items: cart, total, contact: contact.trim(), status: "pending", payment: paymentMethod, createdAt: Date.now() };
-                const docRef = await addDoc(collection(db, "orders"), orderData);
-                const finalOrder = { id: docRef.id, ...orderData };
-                localStorage.setItem('banhMiOngKoiContact', contact.trim());
-                localStorage.setItem('banhMiOngKoiLastOrder', JSON.stringify(finalOrder));
-                setLastOrder(finalOrder);
-                setView('thankyou');
-                setCart([]); setOpenCart(false); 
-            } catch (error) { console.error("Error placing order: ", error); alert("Đã có lỗi xảy ra khi đặt hàng. Vui lòng thử lại."); }
+              const phoneRegex = /^0\d{9}$/;
+              if (!phoneRegex.test(contact)) {
+                  setValidationError('Số điện thoại không hợp lệ.');
+                  return;
+              }
+              if (cart.length === 0) return;
+              setValidationError('');
+
+              try {
+                  const itemsToSave = cart.map(item => ({
+                      name: item.name,
+                      qty: item.qty,
+                      totalPrice: item.totalPrice,
+                      note: item.note || '',
+                      selectedToppings: item.selectedToppings.map(t => ({ name: t.name, price: t.price }))
+                  }));
+
+                  const orderData = { 
+                      items: itemsToSave, 
+                      total: totalCartPrice, 
+                      contact: contact.trim(), 
+                      status: "pending", 
+                      payment: paymentMethod, 
+                      createdAt: Date.now() 
+                  };
+                  const docRef = await addDoc(collection(db, "orders"), orderData);
+                  const finalOrder = { id: docRef.id, ...orderData };
+                  
+                  setLastOrder(finalOrder);
+                  setView('thankyou');
+                  setCart([]);
+                  setOpenCart(false);
+              } catch (error) { 
+                  console.error("Error placing order: ", error); 
+                  setValidationError("Lỗi khi đặt hàng, vui lòng thử lại.");
+              }
           };
 
-          const handleContactChange = (e) => {
-              const value = e.target.value.replace(/\D/g, '');
-              setContact(value.slice(0, 10));
-          };
-          
           const handleNewOrderClick = () => {
-            localStorage.removeItem('banhMiOngKoiLastOrder');
-            setView('menu');
+              setLastOrder(null);
+              setView('menu');
           };
 
-          if (loading) {
+
+          if (loading && menu.length === 0) {
               return (
                 <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
-                    <svg className="animate-spin h-8 w-8 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-8 w-8 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24" fill="none">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -260,7 +485,7 @@
                 <div className="max-w-md mx-auto px-4 py-4 text-center">
                   <h1 className="font-bold text-2xl">BÁNH MÌ ÔNG KÒI</h1>
                   <p className="text-sm text-orange-100 mt-1">Giao hàng tận nơi</p>
-                  <div className="mt-3 text-sm text-orange-100 space-y-1 border-t border-white/20 pt-3">
+                   <div className="mt-3 text-sm text-orange-100 space-y-1 border-t border-white/20 pt-3">
                       <p className="flex items-center justify-center"><PhoneIcon /><a href="tel:0768986969" className="font-semibold">07.6898.6969</a></p>
                       <p className="flex items-center justify-center"><MapPinIcon /><span>306 Nguyễn Hoàng, TP.Đà Nẵng</span></p>
                   </div>
@@ -269,105 +494,127 @@
 
               <main className="max-w-md mx-auto pb-28">
                 {view === 'menu' ? (
-                    <div>
-                        <div className="px-4 py-4 text-center bg-white">
-                            <p className="text-sm text-neutral-700 italic">"Đà Nẵng hàng vạn quán ăn, cảm ơn bạn đã lựa chọn chúng tôi!"</p>
-                            <p className="text-sm text-neutral-700 font-semibold mt-1">Chúc bạn một ngày tốt lành!</p>
+                  <>
+                    {!storeStatus.isOpen && (<div className="p-4 m-4 text-center bg-red-100 text-red-800 rounded-lg"><p className="font-bold">Cửa hàng đang tạm đóng cửa!</p><p className="text-sm">Xin lỗi quý khách vì sự bất tiện này.</p></div>)}
+                    
+                    <nav className="sticky top-0 bg-neutral-100/80 backdrop-blur-sm z-30 py-3 border-y">
+                        <div className="max-w-md mx-auto px-4">
+                            <div className="flex space-x-4 overflow-x-auto scrollbar-hide">
+                                {displayMenu.map(group => (
+                                    <button key={group.category} onClick={() => scrollToCategory(group.category)} className={`px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${activeCategory === group.category ? `brand-bg text-white` : 'bg-white text-neutral-700 shadow-sm'}`}>
+                                        {group.category}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+                    </nav>
 
-                        {!storeStatus.isOpen && (<div className="p-4 m-4 text-center bg-red-100 text-red-800 rounded-lg"><p className="font-bold">Cửa hàng đang tạm đóng cửa!</p><p className="text-sm">Xin lỗi quý khách vì sự bất tiện này.</p></div>)}
-                        {displayMenu.promos.length > 0 && (
-                            <section className="mt-4">
-                                <h3 className="text-lg font-bold mb-2 px-4">Ưu đãi hôm nay</h3>
-                                <div className="flex space-x-3 overflow-x-auto pb-3 px-4 scrollbar-hide">
-                                    {displayMenu.promos.map(m => {
-                                        const cartItem = cart.find(c => c.id === m.id); const qty = cartItem ? cartItem.qty : 0;
+                    <div className="mt-5 space-y-6 px-4">
+                        {displayMenu.map(group => (
+                            <section key={group.category} id={`category-${group.category}`}>
+                                <h3 className="text-xl font-bold mb-4 text-neutral-800">{group.category}</h3>
+                                <div className="space-y-3">
+                                    {group.items.map(m => {
+                                        const simpleCartItem = cart.find(c => c.id === m.id && (!c.selectedToppings || c.selectedToppings.length === 0));
+                                        const qty = simpleCartItem ? simpleCartItem.qty : 0;
+
                                         return (
-                                            <div key={m.id} className="w-64 flex-shrink-0">
-                                                <Card className="p-2 h-full"><div className="flex h-full items-center"><img src={m.photo} alt={m.name} className="w-20 h-20 object-cover rounded-lg flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/><div className="flex flex-col justify-between flex-1 ml-3 h-20"><p className="text-sm font-medium leading-tight" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.name}</p><div className="flex justify-between items-center"><div className="flex items-baseline gap-2"><p className="font-semibold text-sm">{vnd(m.price)}</p>{m.compareAtPrice > 0 && <p className="text-xs text-neutral-400 line-through">{vnd(m.compareAtPrice)}</p>}</div><div className="self-end">{qty > 0 ? (<div className="flex items-center gap-1"><Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button><span className="font-bold w-5 text-center">{qty}</span><Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button></div>) : (<Button size="icon" className="rounded-full w-8 h-8" disabled={!m.available || !storeStatus.isOpen} onClick={() => increaseQty(m)}><PlusIcon/></Button>)}</div></div></div></div></Card>
-                                            </div>
-                                        );
+                                            <Card key={m.id} onClick={() => handleItemClick(m)} className={`relative ${m.available && storeStatus.isOpen ? 'cursor-pointer active:bg-neutral-50' : ''}`}>
+                                                <div className="flex items-center p-3 gap-3">
+                                                    <img src={m.photo} alt={m.name} className="w-24 h-24 object-cover rounded-md flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/>
+                                                    <div className="flex-grow self-start">
+                                                        <h4 className="font-bold text-base leading-tight">{m.name}</h4>
+                                                        {m.description && (<p className="text-sm text-neutral-500 mt-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.description}</p>)}
+                                                        <p className="font-semibold mt-2 text-base brand-color">{vnd(m.price)}</p>
+                                                    </div>
+                                                    <div className="flex-shrink-0 self-end">
+                                                        {qty > 0 ? (
+                                                            <div className="flex items-center gap-1">
+                                                                <button onClick={(e) => {e.stopPropagation(); decreaseSimpleItem(m.id)}} className="rounded-full w-7 h-7 flex items-center justify-center border bg-white"><MinusIcon/></button>
+                                                                <span className="font-bold w-6 text-center">{qty}</span>
+                                                                <button onClick={(e) => {e.stopPropagation(); addOrIncreaseSimpleItem(m)}} className="rounded-full w-7 h-7 flex items-center justify-center brand-bg text-white"><PlusIcon/></button>
+                                                            </div>
+                                                        ) : (
+                                                            <button onClick={(e) => {e.stopPropagation(); handleItemClick(m)}} className="h-9 w-9 flex items-center justify-center rounded-full brand-bg text-white shadow"><PlusIcon/></button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {!m.available && <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl"><span className="text-black font-semibold border bg-white px-2 py-1 rounded-md">Hết hàng</span></div>}
+                                            </Card>
+                                        )
                                     })}
                                 </div>
                             </section>
-                        )}
-                        
-                        <nav className="sticky top-0 bg-neutral-100/80 backdrop-blur-sm z-30 py-3 border-y">
-                            <div className="max-w-md mx-auto px-4">
-                                <div className="flex space-x-4 overflow-x-auto scrollbar-hide">
-                                    {displayMenu.categorized.map(group => (
-                                        <button key={group.category} onClick={() => scrollToCategory(group.category)} className={`px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${activeCategory === group.category ? `bg-[${BRAND_COLOR}] text-white` : 'bg-white text-neutral-700 shadow-sm'}`}>
-                                            {group.category}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </nav>
-
-                        <div className="mt-5 space-y-6 px-4">
-                            {displayMenu.categorized.map(group => (
-                                <section key={group.category} id={`category-${group.category}`}>
-                                    <h3 className="text-xl font-bold mb-4">{group.category}</h3>
-                                    <div className="space-y-3">
-                                        {group.items.map(m => { 
-                                            const cartItem = cart.find(c => c.id === m.id); const qty = cartItem ? cartItem.qty : 0; 
-                                            return (
-                                                <Card key={m.id}><div className="flex items-center p-3 gap-3"><img src={m.photo} alt={m.name} className="w-24 h-24 object-cover rounded-md flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/><div className="flex-grow self-start"><h4 className="font-bold text-base leading-tight">{m.name}</h4>{m.description && (<p className="text-sm text-neutral-500 mt-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.description}</p>)}<p className="font-semibold mt-2 text-base">{vnd(m.price)}</p></div><div className="flex-shrink-0 self-end">{qty > 0 ? (<div className="flex items-center gap-1"><Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={() => decreaseQty(m.id)}><MinusIcon/></Button><span className="font-bold w-5 text-center">{qty}</span><Button size="icon" className="rounded-full w-7 h-7" onClick={() => increaseQty(m)}><PlusIcon/></Button></div>) : (<Button size="icon" className="rounded-full w-9 h-9" disabled={!m.available || !storeStatus.isOpen} onClick={() => increaseQty(m)}><PlusIcon/></Button>)}</div></div>{!m.available && <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl"><span className="text-black font-semibold border bg-white px-2 py-1 rounded-md">Hết hàng</span></div>}</Card>
-                                            )
-                                        })}
-                                    </div>
-                                </section>
-                            ))}
-                        </div>
+                        ))}
                     </div>
+                  </>
                 ) : (
-                    <ThankYouPage order={lastOrder} onNewOrder={handleNewOrderClick} />
+                  <ThankYouPage order={lastOrder} onNewOrder={handleNewOrderClick} />
                 )}
               </main>
 
-              {view === 'menu' && cart.length > 0 && (<div className="fixed bottom-0 left-0 right-0 z-30"><div className="max-w-md mx-auto p-2"><Button className="w-full h-12 rounded-xl text-base shadow-lg" onClick={()=> setOpenCart(true)}><div className="flex items-center justify-between w-full"><span>{cart.reduce((s,i)=>s+i.qty,0)} món</span><span className="font-bold">{vnd(total)}</span></div></Button></div></div>)}
-              
+              {view === 'menu' && cart.length > 0 && (
+                <div className="fixed bottom-0 left-0 right-0 z-30"><div className="max-w-md mx-auto p-2">
+                    <Button className="w-full h-12 rounded-xl text-base shadow-lg" onClick={()=> setOpenCart(true)}>
+                        <div className="flex items-center justify-between w-full px-4">
+                            <span>{cart.reduce((s,i)=>s+i.qty,0)} món</span>
+                            <span className="font-bold">{vnd(totalCartPrice)}</span>
+                        </div>
+                    </Button>
+                </div></div>
+              )}
+
               {view === 'menu' && openCart && (
-                <div className="fixed inset-0 z-50 flex flex-col justify-end">
+                 <div className="fixed inset-0 z-50 flex flex-col justify-end">
                   <div className="absolute inset-0 bg-black/60" onClick={() => setOpenCart(false)}></div>
                   <div className={`relative bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[80vh] transition-transform duration-300 ${openCart ? 'translate-y-0' : 'translate-y-full'}`}>
                       <div className="p-4 border-b flex-shrink-0"><h2 className="text-lg font-semibold text-center">Tóm tắt đơn hàng</h2></div>
                       <div className="flex-1 p-4 space-y-3 overflow-y-auto">
                         {cart.map(c => (
-                            <Card key={c.id}>
+                            <Card key={c.cartId}>
                                 <div className="p-3">
                                     <div className="flex justify-between items-start">
                                         <div className="flex-grow pr-4">
-                                            <p className="font-medium">{c.name}</p>
-                                            <p className="text-sm text-neutral-500">{vnd(c.price * c.qty)}</p>
+                                            <p className="font-medium">{c.qty} x {c.name}</p>
+                                             {c.selectedToppings.length > 0 && (
+                                               <div className="pl-2 mt-1 text-xs text-neutral-500 border-l-2 ml-1">
+                                                   {c.selectedToppings.map(t => <p key={t.id}>+ {t.name}</p>)}
+                                               </div>
+                                           )}
+                                            {c.note && <p className="text-xs text-blue-600 mt-1">Ghi chú: {c.note}</p>}
                                         </div>
                                         <div className="flex items-center gap-1 flex-shrink-0">
-                                            <Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={()=>decreaseQty(c.id)}><MinusIcon/></Button>
+                                            <button className="rounded-full w-7 h-7 flex items-center justify-center border" onClick={()=>decreaseCartQty(c.cartId)}><MinusIcon/></button>
                                             <span className="font-bold w-6 text-center">{c.qty}</span>
-                                            <Button size="icon" variant="outline" className="rounded-full w-7 h-7" onClick={()=>increaseQty(c)}><PlusIcon/></Button>
+                                            <button className="rounded-full w-7 h-7 flex items-center justify-center border" onClick={()=>increaseCartQty(c.cartId)}><PlusIcon/></button>
                                         </div>
                                     </div>
-                                    <Textarea className="mt-2 text-sm" placeholder="Ghi chú (ít ớt, không rau…)" value={c.note||""} onChange={e => updateCartItemNote(c.id, e.target.value)}/>
+                                    <p className="text-right font-medium mt-2">{vnd(c.totalPrice * c.qty)}</p>
                                 </div>
                             </Card>
                         ))}
                       </div>
                       <div className="p-4 border-t bg-white space-y-3 flex-shrink-0">
-                          <Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={handleContactChange} type="tel" maxLength={10} />
                           <div>
+                            <Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={e => setContact(e.target.value)} type="tel" maxLength={10} />
+                            {validationError && <p className="text-red-500 text-xs mt-1">{validationError}</p>}
+                          </div>
+                           <div>
                               <div className="text-sm font-medium mb-2">Phương thức thanh toán</div>
                               <div className="grid grid-cols-2 gap-2">
                                   <button onClick={() => setPaymentMethod('TIENMAT')} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'TIENMAT' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Tiền mặt</button>
                                   <button onClick={() => { setPaymentMethod('CHUYENKHOAN'); setShowQrModal(true); }} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'CHUYENKHOAN' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Chuyển khoản</button>
                               </div>
                           </div>
-                          <div className="flex items-center justify-between font-semibold text-lg"><span>Tổng cộng</span><span style={{ color: BRAND_COLOR }}>{vnd(total)}</span></div>
+                          <div className="flex items-center justify-between font-semibold text-lg"><span>Tổng cộng</span><span className="brand-color">{vnd(totalCartPrice)}</span></div>
                           <Button className="w-full h-12 rounded-xl text-base" onClick={checkout}>Đặt hàng</Button>
                       </div>
                   </div>
                 </div>
               )}
-              {showQrModal && <QrCodeModal total={total} onClose={() => setShowQrModal(false)} />}
+              
+              {selectedItem && <ItemDetailModal item={selectedItem} allToppingGroups={toppingGroups} allToppings={toppings} onClose={() => setSelectedItem(null)} onAddToCart={handleAddToCart} />}
+              {showQrModal && <QrCodeModal total={totalCartPrice} onClose={() => setShowQrModal(false)} />}
             </div>
           );
         }
@@ -378,3 +625,4 @@
     </script>
 </body>
 </html>
+
