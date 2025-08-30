@@ -96,14 +96,21 @@
             }, [relevantGroups, allToppings]);
 
             const handleOptionChange = (group, optionId) => {
-                const currentSelection = selectedOptions[group.id] || [];
+                const currentSelection = selectedOptions[group.id];
+
                 if (group.type === 'single') {
-                    setSelectedOptions({ ...selectedOptions, [group.id]: optionId });
+                    // Cho phép bỏ chọn nếu nhấn lại vào radio button đã chọn
+                    const newSelection = currentSelection === optionId ? null : optionId;
+                    setSelectedOptions({ ...selectedOptions, [group.id]: newSelection });
                 } else { // multiple
-                    const newSelection = currentSelection.includes(optionId)
-                        ? newSelection.filter(id => id !== optionId)
-                        : [...currentSelection, optionId];
+                    const currentArray = currentSelection || [];
+                    // Xóa topping nếu đã có, hoặc thêm vào nếu chưa có
+                    const newSelection = currentArray.includes(optionId)
+                        ? currentArray.filter(id => id !== optionId)
+                        : [...currentArray, optionId];
+                    
                     if (newSelection.length > (group.maxSelection || 99)) return;
+                    
                     setSelectedOptions({ ...selectedOptions, [group.id]: newSelection });
                 }
             };
@@ -112,6 +119,8 @@
                 let optionsPrice = 0;
                 for (const groupId in selectedOptions) {
                     const selection = selectedOptions[groupId];
+                    if (!selection) continue; // Bỏ qua nếu lựa chọn là null (đã bỏ chọn)
+
                     if (Array.isArray(selection)) { // multiple
                         selection.forEach(optionId => {
                             const option = allToppings.find(t => t.id === optionId);
@@ -130,6 +139,9 @@
                 for (const groupId in selectedOptions) {
                      const group = allToppingGroups.find(g => g.id === groupId);
                      const selection = selectedOptions[groupId];
+
+                     if (!selection) continue; // Bỏ qua các group không có lựa chọn
+
                      if(Array.isArray(selection)){
                          selection.forEach(optionId => {
                              const option = allToppings.find(t => t.id === optionId);
@@ -164,21 +176,28 @@
                                             {group.type === 'single' ? "Chọn 1" : `Chọn tối đa ${group.maxSelection || 'nhiều'}`}
                                         </p>
                                         <div className="mt-2 space-y-2">
-                                            {groupToppings.map(option => (
-                                                <label key={option.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                                                    <div>
-                                                        <p className="font-medium text-neutral-700">{option.name}</p>
-                                                        <p className="text-sm brand-color font-semibold">+{vnd(option.price)}</p>
-                                                    </div>
-                                                    <input
-                                                        type={group.type === 'single' ? 'radio' : 'checkbox'}
-                                                        name={`group-${group.id}`}
-                                                        checked={(selectedOptions[group.id] || []).includes(option.id)}
-                                                        onChange={() => handleOptionChange(group, option.id)}
-                                                        className="h-5 w-5 rounded-full border-neutral-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
-                                                    />
-                                                </label>
-                                            ))}
+                                            {groupToppings.map(option => {
+                                                // Logic kiểm tra trạng thái checked đã được sửa lại cho chính xác
+                                                const isChecked = group.type === 'single'
+                                                    ? selectedOptions[group.id] === option.id
+                                                    : (selectedOptions[group.id] || []).includes(option.id);
+
+                                                return (
+                                                    <label key={option.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
+                                                        <div>
+                                                            <p className="font-medium text-neutral-700">{option.name}</p>
+                                                            <p className="text-sm brand-color font-semibold">+{vnd(option.price)}</p>
+                                                        </div>
+                                                        <input
+                                                            type={group.type === 'single' ? 'radio' : 'checkbox'}
+                                                            name={`group-${group.id}`}
+                                                            checked={isChecked}
+                                                            onChange={() => handleOptionChange(group, option.id)}
+                                                            className="h-5 w-5 rounded-full border-neutral-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                                                        />
+                                                    </label>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 );
@@ -206,22 +225,21 @@
 
             const getStatusDisplay = (status) => {
               switch (status) {
-                  case 'pending': return { text: 'Đang chờ xác nhận', className: 'bg-yellow-100 text-yellow-800' };
-                  case 'processing': return { text: 'Đang thực hiện', className: 'bg-blue-100 text-blue-800' };
-                  case 'completed': return { text: 'Hoàn thành', className: 'bg-green-100 text-green-800' };
-                  case 'canceled': return { text: 'Đã hủy', className: 'bg-red-100 text-red-800' };
-                  default: return { text: 'Không xác định', className: 'bg-gray-100 text-gray-800' };
+                  case 'pending': return { text: 'Đang chờ xác nhận', className: 'text-yellow-600' };
+                  default: return { text: 'Không xác định', className: 'text-gray-600' };
               }
             };
             const statusDisplay = getStatusDisplay(order.status);
 
             return (
-                <div className="flex flex-col items-center justify-center text-center pt-10 pb-16 px-4">
-                    <CheckCircleIcon />
-                    <h2 className="text-2xl font-bold mt-4">Đặt hàng thành công!</h2>
-                    <p className="text-neutral-600 mt-2">Cảm ơn bạn đã tin tưởng. Vui lòng theo dõi trạng thái đơn hàng dưới đây.</p>
-                    <div className="w-full max-w-sm mt-8 text-left border rounded-lg p-4 bg-white shadow-sm">
-                         <h3 className="font-semibold border-b pb-2">Tóm tắt đơn hàng #{String(order.createdAt).slice(-6)}</h3>
+                <div className="flex flex-col items-center text-center pt-10 pb-16 px-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h2 className="text-xl font-bold mt-4">Đặt hàng thành công!</h2>
+                    <p className="text-neutral-500 mt-2 text-sm">Cảm ơn bạn đã tin tưởng. Vui lòng theo dõi trạng thái đơn hàng dưới đây.</p>
+                    <div className="w-full max-w-sm mt-6 text-left border rounded-lg p-4 bg-white shadow-sm">
+                         <h3 className="font-semibold border-b pb-2 text-sm">Tóm tắt đơn hàng #{String(order.createdAt).slice(-6)}</h3>
                          <ul className="text-sm space-y-2 py-3">
                              {order.items.map((item, index) => (
                                  <li key={index} className="flex justify-between">
@@ -230,16 +248,16 @@
                                  </li>
                              ))}
                          </ul>
-                         <div className="border-t pt-2 flex justify-between font-bold">
+                         <div className="border-t pt-2 flex justify-between font-bold text-sm">
                              <span>Tổng cộng</span>
                              <span>{vnd(order.total)}</span>
                          </div>
                          <div className="mt-2 pt-2 border-t text-sm flex justify-between items-center">
                             <span>Trạng thái:</span>
-                            <span className={`font-semibold px-2 py-0.5 rounded-full text-xs ${statusDisplay.className}`}>{statusDisplay.text}</span>
+                            <span className={`font-semibold ${statusDisplay.className}`}>{statusDisplay.text}</span>
                          </div>
                     </div>
-                    <Button className="w-full max-w-sm mt-8" onClick={onNewOrder}>Đặt đơn hàng mới</Button>
+                    <Button className="w-full max-w-sm mt-6 rounded-lg" onClick={onNewOrder}>Đặt đơn hàng mới</Button>
                 </div>
             );
         };
@@ -288,6 +306,16 @@
           const [validationError, setValidationError] = useState('');
 
           useEffect(() => {
+            const savedContact = localStorage.getItem('banhMiOngKoiContact');
+            if (savedContact) setContact(savedContact);
+            const savedOrder = localStorage.getItem('banhMiOngKoiLastOrder');
+            if (savedOrder) { 
+                setLastOrder(JSON.parse(savedOrder)); 
+                setView('thankyou'); 
+            }
+          }, []);
+
+          useEffect(() => {
             const unsubscribers = [];
             const collectionsToFetch = [
                 { name: "menu", setter: setMenu, query: query(collection(db, "menu"), orderBy("order", "asc")) },
@@ -316,7 +344,9 @@
                 const orderRef = doc(db, "orders", lastOrder.id);
                 const unsubscribe = onSnapshot(orderRef, (doc) => {
                     if (doc.exists()) {
-                        setLastOrder(prev => ({...prev, ...doc.data()}));
+                        const updatedOrder = {id: doc.id, ...doc.data()};
+                        setLastOrder(updatedOrder);
+                        localStorage.setItem('banhMiOngKoiLastOrder', JSON.stringify(updatedOrder));
                     }
                 });
                 return () => unsubscribe();
@@ -451,6 +481,8 @@
                   const docRef = await addDoc(collection(db, "orders"), orderData);
                   const finalOrder = { id: docRef.id, ...orderData };
                   
+                  localStorage.setItem('banhMiOngKoiContact', contact.trim());
+                  localStorage.setItem('banhMiOngKoiLastOrder', JSON.stringify(finalOrder));
                   setLastOrder(finalOrder);
                   setView('thankyou');
                   setCart([]);
@@ -462,6 +494,7 @@
           };
 
           const handleNewOrderClick = () => {
+              localStorage.removeItem('banhMiOngKoiLastOrder');
               setLastOrder(null);
               setView('menu');
           };
@@ -625,4 +658,5 @@
     </script>
 </body>
 </html>
+
 
