@@ -48,7 +48,7 @@
         const db = getFirestore(app);
         
         // ===== Icon Components (SVG) =====
-        const PlusIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 ${className}`}><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>;
+        const PlusIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 5v14M5 12h14" /></svg>;
         const MinusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="5" x2="19" y1="12" y2="12"/></svg>;
         const SuccessIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
         const PhoneIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81 .7A2 2 0 0 1 22 16.92z"></path></svg>;
@@ -67,6 +67,7 @@
         const Input = ({ className, ...props }) => <input className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 brand-ring ${className}`} {...props} />;
         const Textarea = ({ className, ...props }) => <textarea className={`flex min-h-[60px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 brand-ring ${className}`} {...props} />;
 
+        // START EDIT: Redesigned modal for better visibility of toppings
         const ItemDetailModal = ({ item, allToppingGroups, allToppings, onClose, onAddToCart }) => {
             const [quantity, setQuantity] = useState(1);
             const [note, setNote] = useState('');
@@ -122,13 +123,22 @@
             return (
                 <div className="fixed inset-0 z-50 flex items-end">
                     <div className="absolute inset-0 bg-black/40" onClick={onClose}></div>
-                    <div className="relative bg-neutral-100 w-full rounded-t-2xl flex flex-col max-h-[80vh]">
-                         <div className="flex-shrink-0 p-4">
-                            <img src={item.photo} alt={item.name} className="w-full h-40 object-cover rounded-xl"/>
-                            <h2 className="text-2xl font-bold mt-3 text-slate-800">{item.name}</h2>
-                            <p className="text-neutral-600 mt-1">{item.description}</p>
+                    <div className="relative bg-white w-full rounded-t-2xl flex flex-col max-h-[85vh]">
+                        
+                        {/* Compact Header */}
+                        <div className="flex-shrink-0 p-4 border-b">
+                            <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-3" aria-hidden="true"></div>
+                            <div className="flex items-start gap-4">
+                                <img src={item.photo} alt={item.name} className="w-24 h-24 object-cover rounded-xl flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }} />
+                                <div className="flex-grow">
+                                    <h2 className="text-xl font-bold text-slate-800">{item.name}</h2>
+                                    <p className="text-neutral-600 text-sm mt-1 line-clamp-3">{item.description}</p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+                        {/* Scrollable options area */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50">
                              {relevantGroups.map(group => {
                                 let groupToppings = allToppings.filter(t => t.groupId === group.id && t.available);
                                 if (groupToppings.length === 0) return null;
@@ -137,15 +147,20 @@
                                     groupToppings.sort((a, b) => sizeOrder.indexOf(a.name.toLowerCase()) - sizeOrder.indexOf(b.name.toLowerCase()));
                                 }
                                 return (
-                                    <div key={group.id}>
-                                        <h3 className="font-semibold text-neutral-800">{group.name} {group.required && <span className="text-red-500">*</span>}</h3>
-                                        <p className="text-xs text-neutral-500">{group.type === 'single' ? "Chọn 1" : `Chọn tối đa ${group.maxSelection || 'nhiều'}`}</p>
+                                    <div key={group.id} className="bg-white p-3 rounded-xl shadow-sm">
+                                        <div>
+                                            <h3 className="font-semibold text-neutral-800">{group.name} {group.required && <span className="text-red-500">*</span>}</h3>
+                                            <p className="text-xs text-neutral-500">{group.type === 'single' ? "Chọn 1" : `Chọn tối đa ${group.maxSelection || 'nhiều'}`}</p>
+                                        </div>
                                         <div className="mt-2 space-y-2">
                                             {groupToppings.map(option => {
                                                 const isChecked = group.type === 'single' ? selectedOptions[group.id] === option.id : (selectedOptions[group.id] || []).includes(option.id);
                                                 return (
-                                                    <label key={option.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                                                        <div><p className="font-medium text-neutral-700">{option.name}</p><p className="text-sm brand-color font-semibold">+{vnd(option.price)}</p></div>
+                                                    <label key={option.id} className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg cursor-pointer">
+                                                        <div>
+                                                            <p className="font-medium text-neutral-700">{option.name}</p>
+                                                            <p className="text-sm brand-color font-semibold">+{vnd(option.price)}</p>
+                                                        </div>
                                                         <input type={group.type === 'single' ? 'radio' : 'checkbox'} name={`group-${group.id}`} checked={isChecked} onChange={() => handleOptionChange(group, option.id)} className="h-5 w-5 rounded-full border-neutral-300 text-orange-600 focus:ring-orange-500 cursor-pointer" />
                                                     </label>
                                                 );
@@ -154,11 +169,13 @@
                                     </div>
                                 );
                             })}
-                            <div>
+                            <div className="bg-white p-3 rounded-xl shadow-sm">
                                 <h3 className="font-semibold text-neutral-800">Ghi chú</h3>
                                 <Textarea className="mt-2" value={note} onChange={e => setNote(e.target.value)} placeholder="Dặn dò thêm cho quán..."/>
                             </div>
                         </div>
+
+                        {/* Sticky footer */}
                         <div className="flex-shrink-0 p-3 border-t bg-white/80 backdrop-blur-lg flex items-center justify-between gap-3 pb-safe">
                             <div className="flex items-center gap-2">
                                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="h-10 w-10 flex items-center justify-center rounded-full border bg-neutral-100 text-neutral-700 font-bold text-xl">-</button>
@@ -169,8 +186,9 @@
                         </div>
                     </div>
                 </div>
-            )
+            );
         }
+        // END EDIT
         
         const ThankYouPage = ({ order, onNewOrder }) => {
             if (!order) return null;
@@ -478,9 +496,9 @@
                                                             <div className="flex items-center gap-2">
                                                                 <button onClick={(e) => {e.stopPropagation(); decreaseSimpleItem(m.id)}} className="rounded-full w-8 h-8 flex items-center justify-center border bg-white"><MinusIcon/></button>
                                                                 <span className="font-bold w-6 text-center">{simpleCartItem.qty}</span>
-                                                                <button onClick={(e) => {e.stopPropagation(); addOrIncreaseSimpleItem(m)}} className="rounded-full w-8 h-8 flex items-center justify-center brand-bg text-white"><PlusIcon/></button>
+                                                                <button onClick={(e) => {e.stopPropagation(); addOrIncreaseSimpleItem(m)}} className="rounded-full w-8 h-8 flex items-center justify-center brand-bg text-white"><PlusIcon className="w-5 h-5"/></button>
                                                             </div>
-                                                        ) : ( <button onClick={(e) => {e.stopPropagation(); handleItemClick(m)}} className="h-8 w-8 flex items-center justify-center rounded-full brand-bg text-white shadow"><PlusIcon/></button> )}
+                                                        ) : ( <button onClick={(e) => {e.stopPropagation(); handleItemClick(m)}} className="h-8 w-8 flex items-center justify-center rounded-full brand-bg text-white shadow"><PlusIcon className="w-5 h-5"/></button> )}
                                                     </div>
                                                 </div>
                                                 {!m.available && <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl"><span className="text-black font-semibold border bg-white px-2 py-1 rounded-md">Hết hàng</span></div>}
