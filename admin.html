@@ -24,8 +24,6 @@
         .brand-color { color: #fc6806; }
         .brand-bg { background-color: #fc6806; }
         .brand-ring:focus { --tw-ring-color: #fc6806; }
-        .professional-green { color: #00B14F; }
-        .professional-green-bg { background-color: #00B14F; }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -69,7 +67,7 @@
         const Card = ({ children, className, ...props }) => <div className={`rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm ${className}`} {...props}>{children}</div>;
         const Input = ({ className, ...props }) => <input className={`flex h-10 w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 brand-ring ${className}`} {...props} />;
         const Switch = ({ checked, onChange }) => (
-            <button onClick={onChange} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${checked ? 'professional-green-bg' : 'bg-slate-300'}`}>
+            <button onClick={onChange} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${checked ? 'brand-bg' : 'bg-slate-300'}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${checked ? 'translate-x-6' : 'translate-x-1'}`}/>
             </button>
         );
@@ -305,8 +303,8 @@
                     <h2 className="text-2xl font-bold my-4 text-slate-800">Thực đơn</h2>
                     <div className="border-b border-slate-200">
                         <nav className="-mb-px flex space-x-6">
-                            <button onClick={() => setActiveTab('items')} className={`py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'items' ? 'border-green-500 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>Món</button>
-                            <button onClick={() => setActiveTab('groups')} className={`py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'groups' ? 'border-green-500 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>Tuỳ chọn nhóm</button>
+                            <button onClick={() => setActiveTab('items')} className={`py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'items' ? 'border-orange-500 brand-color' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>Món</button>
+                            <button onClick={() => setActiveTab('groups')} className={`py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'groups' ? 'border-orange-500 brand-color' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>Tuỳ chọn nhóm</button>
                         </nav>
                     </div>
                     <div className="mt-4">
@@ -356,7 +354,7 @@
                         ))}
                     </div>
                     
-                    <button onClick={() => setIsActionModalOpen(true)} className="fixed bottom-24 right-5 professional-green-bg text-white rounded-full p-4 shadow-lg hover:opacity-90 transition-all duration-300 transform hover:scale-110">
+                    <button onClick={() => setIsActionModalOpen(true)} className="fixed bottom-24 right-5 brand-bg text-white rounded-full p-4 shadow-lg hover:opacity-90 transition-all duration-300 transform hover:scale-110">
                         <PlusIcon />
                     </button>
 
@@ -445,7 +443,7 @@
                                         </ul>
                                         {order.status === 'pending' && (
                                             <div className="flex gap-2 mt-3">
-                                                <Button size="sm" className="flex-1 professional-green-bg" onClick={() => updateOrderStatus(order.id, 'processing')}>Xác nhận</Button>
+                                                <Button size="sm" className="flex-1 brand-bg" onClick={() => updateOrderStatus(order.id, 'processing')}>Xác nhận</Button>
                                                 <Button size="sm" variant="destructive" className="flex-1" onClick={() => updateOrderStatus(order.id, 'canceled')}>Hủy đơn</Button>
                                             </div>
                                         )}
@@ -697,17 +695,17 @@
                 <footer className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-slate-200 z-50">
                     <div className="max-w-md mx-auto grid grid-cols-3 h-full">
                         <button onClick={() => setAdminTab('orders')} className="relative flex flex-col items-center justify-center text-sm font-medium">
-                            <OrdersIcon className={adminTab === 'orders' ? `professional-green` : 'text-slate-400'}/>
-                            <span className={adminTab === 'orders' ? `professional-green` : 'text-slate-600'}>Đơn hàng</span>
-                            {pendingOrderCount > 0 && <span className="absolute top-2 right-6 w-4 h-4 professional-green-bg text-white text-xs rounded-full flex items-center justify-center">{pendingOrderCount}</span>}
+                            <OrdersIcon className={adminTab === 'orders' ? `brand-color` : 'text-slate-400'}/>
+                            <span className={adminTab === 'orders' ? `brand-color` : 'text-slate-600'}>Đơn hàng</span>
+                            {pendingOrderCount > 0 && <span className="absolute top-2 right-6 w-4 h-4 brand-bg text-white text-xs rounded-full flex items-center justify-center">{pendingOrderCount}</span>}
                         </button>
                         <button onClick={() => setAdminTab('menu')} className="flex flex-col items-center justify-center text-sm font-medium">
-                            <MenuIcon className={adminTab === 'menu' ? `professional-green` : 'text-slate-400'}/>
-                            <span className={adminTab === 'menu' ? `professional-green` : 'text-slate-600'}>Thực đơn</span>
+                            <MenuIcon className={adminTab === 'menu' ? `brand-color` : 'text-slate-400'}/>
+                            <span className={adminTab === 'menu' ? `brand-color` : 'text-slate-600'}>Thực đơn</span>
                         </button>
                         <button onClick={() => setAdminTab('stats')} className="flex flex-col items-center justify-center text-sm font-medium">
-                             <StatsIcon className={adminTab === 'stats' ? `professional-green` : 'text-slate-400'}/>
-                            <span className={adminTab === 'stats' ? `professional-green` : 'text-slate-600'}>Thống kê</span>
+                             <StatsIcon className={adminTab === 'stats' ? `brand-color` : 'text-slate-400'}/>
+                            <span className={adminTab === 'stats' ? `brand-color` : 'text-slate-600'}>Thống kê</span>
                         </button>
                     </div>
                 </footer>
@@ -777,7 +775,7 @@
                                         <span className="font-medium text-sm text-slate-700">{group.name}</span>
                                         <input
                                             type="checkbox"
-                                            className="h-5 w-5 rounded border-slate-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                                            className="h-5 w-5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
                                             checked={editingItem.toppingGroupIds?.includes(group.id) || false}
                                             onChange={() => handleToppingGroupChange(group.id)}
                                         />
