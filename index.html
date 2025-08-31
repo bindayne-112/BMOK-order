@@ -253,7 +253,6 @@
                            {item.compareAtPrice > item.price && <p className="text-sm text-neutral-400 line-through">{vnd(item.compareAtPrice)}</p>}
                         </div>
                     </div>
-                    {/* ===== THAY ĐỔI: Chuyển màu nút sang màu cam ===== */}
                     <button onClick={(e) => { e.stopPropagation(); onAdd(item); }} className="absolute bottom-3 right-3 h-9 w-9 flex items-center justify-center rounded-full brand-bg text-white shadow-lg transform active:scale-90 transition-transform">
                         <PlusIcon className="w-5 h-5" />
                     </button>
@@ -278,6 +277,9 @@
           const [lastOrder, setLastOrder] = useState(null);
           const [showQrModal, setShowQrModal] = useState(false);
           const [validationError, setValidationError] = useState('');
+
+          const FREE_SHIP_THRESHOLD = 20000;
+          const SHIPPING_FEE = 5000;
 
           useEffect(() => {
             const savedContact = localStorage.getItem('banhMiOngKoiContact');
@@ -352,7 +354,9 @@
           const increaseCartQty = (cartId) => setCart(cart.map(i => i.cartId === cartId ? {...i, qty: i.qty + 1} : i));
           const decreaseCartQty = (cartId) => setCart(cart.map(i => i.cartId === cartId ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0));
 
-          const totalCartPrice = useMemo(() => cart.reduce((sum, item) => sum + (item.totalPrice * item.qty), 0), [cart]);
+          const subtotal = useMemo(() => cart.reduce((sum, item) => sum + (item.totalPrice * item.qty), 0), [cart]);
+          const isFreeship = useMemo(() => subtotal >= FREE_SHIP_THRESHOLD, [subtotal]);
+          const totalCartPrice = useMemo(() => subtotal + (isFreeship ? 0 : SHIPPING_FEE), [subtotal, isFreeship]);
           
           const dealOfDayItems = useMemo(() => menu.filter(item => item.isDealOfDay && item.available), [menu]);
 
@@ -384,7 +388,7 @@
               setValidationError('');
               try {
                   const items = cart.map(i => ({ name: i.name, qty: i.qty, totalPrice: i.totalPrice, note: i.note || '', selectedToppings: i.selectedToppings.map(t => ({ name: t.name, price: t.price })) }));
-                  const orderData = { items, total: totalCartPrice, contact: contact.trim(), status: "pending", payment: paymentMethod, createdAt: Date.now() };
+                  const orderData = { items, subtotal, shippingFee: isFreeship ? 0 : SHIPPING_FEE, total: totalCartPrice, contact: contact.trim(), status: "pending", payment: paymentMethod, createdAt: Date.now() };
                   const docRef = await addDoc(collection(db, "orders"), orderData);
                   const finalOrder = { id: docRef.id, ...orderData };
                   localStorage.setItem('banhMiOngKoiContact', contact.trim());
@@ -417,7 +421,7 @@
               <header className="bg-gradient-to-r from-orange-500 to-orange-400 text-white shadow-md">
                 <div className="px-4 py-4 text-center">
                   <h1 className="font-bold text-2xl">BÁNH MÌ ÔNG KÒI</h1>
-                  <p className="text-sm text-orange-100 mt-1">Giao hàng tận nơi</p>
+                  <p className="text-sm text-orange-100 mt-1">FREESHIP - GIAO HÀNG TẬN NƠI</p>
                    <div className="mt-3 text-sm text-orange-100 space-y-1 border-t border-white/20 pt-3">
                       <p className="flex items-center justify-center"><PhoneIcon /><a href="tel:0768986969" className="font-semibold">07.6898.6969</a></p>
                       <p className="flex items-center justify-center"><MapPinIcon /><span>306 Nguyễn Hoàng, TP.Đà Nẵng</span></p>
@@ -529,6 +533,25 @@
                         ))}
                       </div>
                       <div className="p-3 border-t bg-white space-y-2 flex-shrink-0 pb-safe">
+                          <div className="text-sm space-y-1">
+                              <div className="flex justify-between">
+                                  <span>Tạm tính</span>
+                                  <span>{vnd(subtotal)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                  <span>Phí vận chuyển</span>
+                                  {isFreeship ? (
+                                      <span className="font-semibold text-green-600">Miễn phí</span>
+                                  ) : (
+                                      <span>{vnd(SHIPPING_FEE)}</span>
+                                  )}
+                              </div>
+                              {!isFreeship && subtotal > 0 && (
+                                <div className="text-center text-xs text-green-600 font-medium py-1">
+                                    Mua thêm {vnd(FREE_SHIP_THRESHOLD - subtotal)} để được miễn phí vận chuyển!
+                                </div>
+                              )}
+                          </div>
                           <div>
                             <Input placeholder="SĐT/Zalo (10 số, bắt đầu bằng 0)" value={contact} onChange={e => setContact(e.target.value)} type="tel" maxLength={10} />
                             {validationError && <p className="text-red-500 text-xs mt-1">{validationError}</p>}
@@ -540,7 +563,7 @@
                                   <button onClick={() => { setPaymentMethod('CHUYENKHOAN'); setShowQrModal(true); }} className={`p-3 rounded-lg border text-sm text-center ${paymentMethod === 'CHUYENKHOAN' ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500' : 'bg-neutral-100'}`}>Chuyển khoản</button>
                               </div>
                           </div>
-                          <div className="flex items-center justify-between font-semibold text-lg"><span>Tổng cộng</span><span className="brand-color">{vnd(totalCartPrice)}</span></div>
+                          <div className="flex items-center justify-between font-semibold text-lg border-t pt-2"><span>Tổng cộng</span><span className="brand-color">{vnd(totalCartPrice)}</span></div>
                           <Button className="w-full h-11 rounded-xl text-base" onClick={checkout}>Đặt hàng</Button>
                       </div>
                   </div>
