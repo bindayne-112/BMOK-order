@@ -462,6 +462,101 @@
                 </div>
             );
         }
+        
+        function StatsPage({ orders, menu }) {
+            const [filter, setFilter] = useState('today');
+
+            const filteredOrders = useMemo(() => {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                
+                const startOfWeek = new Date(today);
+                startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Monday as first day
+
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+                return orders.filter(o => {
+                    if (o.status !== 'completed') return false;
+                    const orderDate = new Date(o.createdAt);
+                    switch (filter) {
+                        case 'today':
+                            return orderDate >= today;
+                        case 'week':
+                            return orderDate >= startOfWeek;
+                        case 'month':
+                            return orderDate >= startOfMonth;
+                        default:
+                            return true;
+                    }
+                });
+            }, [orders, filter]);
+
+            const totalRevenue = useMemo(() => filteredOrders.reduce((sum, order) => sum + order.total, 0), [filteredOrders]);
+            const totalOrders = filteredOrders.length;
+            const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+            const bestSellers = useMemo(() => {
+                if (!filteredOrders.length) return [];
+                const itemCounts = {};
+                filteredOrders.forEach(order => {
+                    order.items.forEach(item => {
+                        itemCounts[item.name] = (itemCounts[item.name] || 0) + item.qty;
+                    });
+                });
+                return Object.entries(itemCounts)
+                    .sort(([, qtyA], [, qtyB]) => qtyB - qtyA)
+                    .slice(0, 5)
+                    .map(([name, quantity]) => ({ name, quantity }));
+            }, [filteredOrders]);
+            
+            const StatCard = ({ title, value, subtext }) => (
+                <Card className="p-4">
+                    <p className="text-sm font-medium text-slate-500">{title}</p>
+                    <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p>
+                    {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>}
+                </Card>
+            );
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold my-4 text-slate-800">Thống kê</h2>
+                    
+                    <div className="flex bg-slate-200 rounded-lg p-1 mb-4">
+                        <button onClick={() => setFilter('today')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'today' ? 'bg-white shadow-sm' : ''}`}>Hôm nay</button>
+                        <button onClick={() => setFilter('week')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'week' ? 'bg-white shadow-sm' : ''}`}>Tuần này</button>
+                        <button onClick={() => setFilter('month')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'month' ? 'bg-white shadow-sm' : ''}`}>Tháng này</button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <StatCard title="Doanh thu" value={vnd(totalRevenue)} />
+                        <StatCard title="Đơn hàng" value={totalOrders} />
+                    </div>
+                     <div className="mt-4">
+                        <StatCard title="Trung bình/đơn" value={vnd(averageOrderValue)} />
+                    </div>
+
+                    <div className="mt-6">
+                        <h3 className="text-lg font-bold text-slate-800 mb-3">Món bán chạy nhất</h3>
+                        {bestSellers.length > 0 ? (
+                            <Card className="p-4">
+                                <ul className="space-y-3">
+                                    {bestSellers.map((item, index) => (
+                                        <li key={item.name} className="flex items-center justify-between text-sm">
+                                            <span className="font-medium text-slate-700">{index + 1}. {item.name}</span>
+                                            <span className="font-bold text-slate-800">{item.quantity} <span className="font-normal text-slate-500">lượt</span></span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </Card>
+                        ) : (
+                            <div className="text-center text-slate-500 py-10">
+                                <p>Không có dữ liệu cho khoảng thời gian này.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
 
         function App() {
           const [isAuthenticated, setIsAuthenticated] = useState(true);
@@ -596,7 +691,7 @@
               <main className="max-w-md mx-auto px-4 pb-24"> 
                 {adminTab === 'orders' && <OrdersPage orders={orders} />}
                 {adminTab === 'menu' && <MenuPage menu={menu} categories={categories} toppingGroups={toppingGroups} allToppings={toppings} updateItemProperty={updateItemProperty} setEditingItem={setEditingItem} handleAddCategory={handleAddCategory} />}
-                {adminTab === 'stats' && <p>Stats Tab</p>}
+                {adminTab === 'stats' && <StatsPage orders={orders} menu={menu} />}
               </main>
 
                 <footer className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-slate-200 z-50">
@@ -659,8 +754,6 @@
                                 </label>
                             </div>
                         </div>
-
-                        {/* === THAY ĐỔI BẮT ĐẦU === */}
                         <div className="border-t border-slate-200 pt-4">
                             <h3 className="font-semibold text-slate-800 mb-2">Gắn thẻ</h3>
                             <div className="space-y-2">
@@ -676,8 +769,6 @@
                                 </div>
                             </div>
                         </div>
-                        {/* === THAY ĐỔI KẾT THÚC === */}
-                        
                         <div className="border-t border-slate-200 pt-4">
                             <h3 className="font-semibold text-slate-800 mb-2">Liên kết nhóm tuỳ chọn</h3>
                             <div className="space-y-2">
@@ -718,3 +809,4 @@
     </script>
 </body>
 </html>
+
