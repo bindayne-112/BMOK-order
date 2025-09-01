@@ -11,19 +11,35 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- ===== THAY ĐỔI: Thêm SDK của Firebase Authentication ===== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        window.firebaseApp = { initializeApp };
-    </script>
-    <script type="module">
         import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, updateDoc, query, orderBy, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        window.firebaseFirestore = { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, updateDoc, query, orderBy, where, getDocs, writeBatch };
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        
+        window.firebase = {
+            initializeApp,
+            getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, updateDoc, query, orderBy, where, getDocs, writeBatch,
+            getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
+        };
     </script>
+
     <style>
         body { font-family: 'Inter', sans-serif; }
         .brand-color { color: #fc6806; }
         .brand-bg { background-color: #fc6806; }
         .brand-ring:focus { --tw-ring-color: #fc6806; }
+         /* Thêm spinner cho trạng thái loading */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            width: 1.25rem;
+            height: 1.25rem;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -32,8 +48,12 @@
     <script type="text/babel">
         const { useEffect, useMemo, useState, useRef, useCallback } = React;
         
-        const { initializeApp } = window.firebaseApp;
-        const { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, updateDoc, query, orderBy, where, getDocs, writeBatch } = window.firebaseFirestore;
+        // ===== THAY ĐỔI: Lấy các hàm từ window object =====
+        const { 
+            initializeApp, 
+            getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, updateDoc, query, orderBy, where, getDocs, writeBatch,
+            getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
+        } = window.firebase;
 
         const firebaseConfig = {
             apiKey: "AIzaSyApIFFzjvfyGusxNkwTapK6H7_uIILZa9g",
@@ -46,8 +66,9 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app); // Khởi tạo Authentication
         
-        // ===== Icon Components (SVG) =====
+        // ===== Icon Components (Giữ nguyên từ file gốc) =====
         const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
         const XIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
         const ChevronUpIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 transition-transform"><path d="m18 15-6-6-6 6"/></svg>;
@@ -56,15 +77,15 @@
         const MenuIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-6 w-6 mb-1 ${className}`}><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 12h6"/></svg>;
         const StatsIcon = ({className}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-6 w-6 mb-1 ${className}`}><path d="M3 3v18h18"/><path d="M7 12v4h4v-4Z"/><path d="M15 8v8h4V8Z"/></svg>;
         const Trash2Icon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
-        {/* ===== THAY ĐỔI: Thêm icon kéo thả ===== */}
         const GripVerticalIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-slate-400"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>;
-
-        // ===== Custom UI Components =====
-        const Button = ({ children, className, variant = 'default', size = 'default', ...props }) => {
-          const baseClasses = "inline-flex items-center justify-center rounded-lg text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
-          const variants = { default: `brand-bg text-white hover:opacity-90`, destructive: "bg-red-500 text-white hover:bg-red-600", outline: "border border-slate-300 bg-transparent hover:bg-slate-100 text-slate-800", ghost: "hover:bg-slate-100 text-slate-800" };
-          const sizes = { default: "h-10 py-2 px-4", sm: "h-9 px-3", icon: "h-10 w-10" };
-          return <button className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>{children}</button>;
+        const LogoutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 mr-2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>;
+        
+        // ===== Custom UI Components (Giữ nguyên) =====
+        const Button = ({ children, className, variant = 'default', size = 'default', isLoading = false, ...props }) => {
+            const baseClasses = "inline-flex items-center justify-center rounded-lg text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+            const variants = { default: `brand-bg text-white hover:opacity-90`, destructive: "bg-red-500 text-white hover:bg-red-600", outline: "border border-slate-300 bg-transparent hover:bg-slate-100 text-slate-800", ghost: "hover:bg-slate-100 text-slate-800" };
+            const sizes = { default: "h-10 py-2 px-4", sm: "h-9 px-3", icon: "h-10 w-10" };
+            return <button disabled={isLoading} className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>{isLoading ? <div className="spinner"></div> : children}</button>;
         };
         const Card = ({ children, className, ...props }) => <div className={`rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm ${className}`} {...props}>{children}</div>;
         const Input = ({ className, ...props }) => <input className={`flex h-10 w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 brand-ring ${className}`} {...props} />;
@@ -73,794 +94,142 @@
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${checked ? 'translate-x-6' : 'translate-x-1'}`}/>
             </button>
         );
-        
+        const LoadingScreen = ({text}) => <div className="min-h-screen flex items-center justify-center bg-slate-100 font-semibold text-slate-600">{text}</div>;
         const vnd = (n) => n.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
-        
-        // ===== Topping Management Tab =====
-        function ToppingManager({ allToppingGroups, allToppings, menu }) {
-            const [view, setView] = useState('list');
-            const [currentGroup, setCurrentGroup] = useState(null);
-            const [options, setOptions] = useState([]);
-            const [groupToDelete, setGroupToDelete] = useState(null);
 
-            const handleAddNewGroup = () => {
-                setCurrentGroup({ name: '', type: 'single', maxSelection: 1, required: true });
-                setOptions([{ id: `temp-${Date.now()}`, name: '', price: 0, available: true }]);
-                setView('edit');
-            };
-
-            const handleEditGroup = (group) => {
-                setCurrentGroup(group);
-                const groupToppings = allToppings.filter(t => t.groupId === group.id);
-                setOptions(groupToppings);
-                setView('edit');
-            };
-
-            const handleSave = async () => {
-                if (!currentGroup || !currentGroup.name.trim()) {
-                    alert('Vui lòng nhập tên nhóm.');
-                    return;
-                }
-
-                const batch = writeBatch(db);
-                let groupId = currentGroup.id;
-
-                const groupData = {
-                    name: currentGroup.name.trim(),
-                    type: currentGroup.type,
-                    maxSelection: currentGroup.type === 'multiple' ? Number(currentGroup.maxSelection) : 1,
-                    required: currentGroup.required,
-                };
-
-                if (groupId) {
-                    batch.update(doc(db, "toppingGroups", groupId), groupData);
-                } else {
-                    const newGroupRef = doc(collection(db, "toppingGroups"));
-                    batch.set(newGroupRef, groupData);
-                    groupId = newGroupRef.id;
-                }
-
-                const existingOptionIds = allToppings.filter(t => t.groupId === groupId).map(t => t.id);
-                const currentOptionIds = options.map(o => o.id).filter(id => !String(id).startsWith('temp-'));
-                
-                const optionsToDelete = existingOptionIds.filter(id => !currentOptionIds.includes(id));
-                optionsToDelete.forEach(id => batch.delete(doc(db, "toppings", id)));
-
-                options.forEach(option => {
-                    if (!option.name.trim()) return;
-                    const optionData = {
-                        name: option.name.trim(),
-                        price: Number(option.price) || 0,
-                        available: option.available,
-                        groupId: groupId
-                    };
-                    if (String(option.id).startsWith('temp-')) {
-                        batch.set(doc(collection(db, "toppings")), optionData);
-                    } else {
-                        batch.update(doc(db, "toppings", option.id), optionData);
-                    }
-                });
-
-                await batch.commit();
-                setView('list');
-                setCurrentGroup(null);
-                setOptions([]);
-            };
+        // ===== THAY ĐỔI: Màn hình đăng nhập bằng Email/Password =====
+        function LoginScreen({ onLogin, error, isLoading }) {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
             
-            const confirmDeleteGroup = async () => {
-                if (!groupToDelete) return;
-                const batch = writeBatch(db);
-                batch.delete(doc(db, "toppingGroups", groupToDelete.id));
-                const toppingsInGroupQuery = query(collection(db, "toppings"), where("groupId", "==", groupToDelete.id));
-                const toppingsSnapshot = await getDocs(toppingsInGroupQuery);
-                toppingsSnapshot.forEach(d => batch.delete(d.ref));
-                
-                const menuItemsToUpdate = menu.filter(item => item.toppingGroupIds && item.toppingGroupIds.includes(groupToDelete.id));
-                menuItemsToUpdate.forEach(item => {
-                    const updatedGroupIds = item.toppingGroupIds.filter(id => id !== groupToDelete.id);
-                    batch.update(doc(db, "menu", item.id), { toppingGroupIds: updatedGroupIds });
-                });
-
-                await batch.commit();
-                setGroupToDelete(null);
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!isLoading) {
+                    onLogin(email, password);
+                }
             };
 
-            const updateOption = (id, field, value) => {
-                setOptions(options.map(o => o.id === id ? { ...o, [field]: value } : o));
-            };
-
-            const addOption = () => {
-                setOptions([...options, { id: `temp-${Date.now()}`, name: '', price: 0, available: true }]);
-            };
-            
-            const removeOption = (id) => {
-                setOptions(options.filter(o => o.id !== id));
-            };
-
-            if (view === 'edit') {
-                return (
-                    <div className="bg-white min-h-screen">
-                        <header className="sticky top-0 z-10 bg-white flex items-center justify-between p-3 border-b border-slate-200">
-                           <Button variant="ghost" size="icon" onClick={() => setView('list')}><ChevronLeftIcon /></Button>
-                           <h2 className="font-bold text-lg text-slate-800">{currentGroup.id ? 'Sửa Nhóm Tuỳ Chọn' : 'Tạo Nhóm Tuỳ Chọn'}</h2>
-                           <Button size="sm" onClick={handleSave}>Lưu</Button>
-                        </header>
-                        <main className="p-4 space-y-6">
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-100">
+                    <div className="w-full max-w-sm p-6">
+                        <h1 className="text-2xl font-bold text-center text-slate-800 mb-6">Đăng nhập Quản trị</h1>
+                        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md space-y-4">
                             <div>
-                                <label className="font-semibold text-sm text-slate-700">Tên nhóm tuỳ chọn <span className="text-red-500">*</span></label>
-                                <Input className="mt-1" value={currentGroup.name} onChange={e => setCurrentGroup({...currentGroup, name: e.target.value})} />
-                            </div>
-                            
-                            <div>
-                                <h3 className="font-semibold text-sm text-slate-700 mb-2">Tuỳ chọn</h3>
-                                <div className="space-y-2">
-                                    {options.map((option) => (
-                                        <div key={option.id} className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg">
-                                            <div className="flex-1 space-y-2">
-                                                <Input placeholder="Tên tuỳ chọn (ví dụ: Nhỏ, Vừa, Lớn)" value={option.name} onChange={e => updateOption(option.id, 'name', e.target.value)} />
-                                                <Input type="number" placeholder="Giá (ví dụ: 5000)" value={option.price} onChange={e => updateOption(option.id, 'price', e.target.value)} />
-                                            </div>
-                                            <Button variant="ghost" size="icon" onClick={() => removeOption(option.id)}><Trash2Icon className="text-red-500"/></Button>
-                                        </div>
-                                    ))}
-                                </div>
-                                <Button variant="outline" className="w-full mt-3" onClick={addOption}><PlusIcon /> Thêm tuỳ chọn mới</Button>
-                            </div>
-
-                            <div className="border-t border-slate-200 pt-4 space-y-2">
-                               <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                                    <div>
-                                        <p className="font-medium text-slate-800">Bắt buộc chọn</p>
-                                        <p className="text-xs text-slate-500">Khách hàng phải chọn ít nhất 1 mục.</p>
-                                    </div>
-                                    <Switch checked={currentGroup.required} onChange={() => setCurrentGroup({...currentGroup, required: !currentGroup.required})} />
-                               </div>
-                               <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                                    <div>
-                                        <p className="font-medium text-slate-800">Cho phép chọn nhiều</p>
-                                        <p className="text-xs text-slate-500">Cho phép khách chọn nhiều tuỳ chọn.</p>
-                                    </div>
-                                    <Switch checked={currentGroup.type === 'multiple'} onChange={() => setCurrentGroup({...currentGroup, type: currentGroup.type === 'multiple' ? 'single' : 'multiple'})} />
-                               </div>
-                               {currentGroup.type === 'multiple' && (
-                                   <div className="p-2">
-                                       <label className="font-medium text-sm text-slate-700">Số lượng tối đa có thể chọn</label>
-                                       <Input type="number" className="mt-1" value={currentGroup.maxSelection} onChange={e => setCurrentGroup({...currentGroup, maxSelection: e.target.value})} />
-                                   </div>
-                               )}
-                            </div>
-                        </main>
-                    </div>
-                );
-            }
-
-            return (
-                <div className="relative min-h-[calc(100vh-12rem)]">
-                    {allToppingGroups.length > 0 ? (
-                        <div className="space-y-4">
-                            {allToppingGroups.map(group => <ToppingGroupCard key={group.id} group={group} toppings={allToppings.filter(t => t.groupId === group.id)} menu={menu} onEdit={handleEditGroup} onDelete={setGroupToDelete} />)}
-                        </div>
-                    ) : (
-                        <div className="text-center text-slate-500 mt-16">
-                            <p className="font-semibold">Chưa có nhóm tuỳ chọn nào.</p>
-                            <p className="text-sm mt-1">Hãy nhấn nút + ở góc dưới để bắt đầu tạo.</p>
-                        </div>
-                    )}
-                    <button onClick={handleAddNewGroup} className="fixed bottom-24 right-5 bg-slate-900 text-white rounded-full p-4 shadow-lg hover:bg-slate-700 transition-all duration-300 transform hover:scale-110">
-                        <PlusIcon />
-                    </button>
-                    {groupToDelete && (<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"><div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4"><h3 className="text-lg font-semibold">Xác nhận xóa nhóm?</h3><p className="text-sm text-slate-500 mt-1">Bạn có chắc muốn xóa nhóm <strong>"{groupToDelete.name}"</strong>? Mọi topping trong nhóm cũng sẽ bị xóa.</p><div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setGroupToDelete(null)}>Hủy</Button><Button variant="destructive" onClick={confirmDeleteGroup}>Xác nhận xóa</Button></div></div></div>)}
-                </div>
-            );
-        }
-
-        const ToppingGroupCard = ({ group, toppings, menu, onEdit, onDelete }) => {
-            const [isExpanded, setIsExpanded] = useState(false);
-            const linkedItemsCount = useMemo(() => {
-                return menu.filter(item => item.toppingGroupIds && item.toppingGroupIds.includes(group.id)).length;
-            }, [menu, group.id]);
-            
-            const toggleToppingAvailability = async (topping) => {
-                await updateDoc(doc(db, "toppings", topping.id), { available: !topping.available });
-            };
-
-            return (
-                <Card>
-                    <div className="p-4">
-                        <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-                            <div>
-                                <p className="font-semibold text-slate-800">{group.name}</p>
-                                <p className="text-xs text-slate-500">Liên kết với {linkedItemsCount} món</p>
-                            </div>
-                            <ChevronUpIcon className={`text-slate-500 transition-transform ${isExpanded ? '' : 'rotate-180'}`} />
-                        </div>
-                         <div className={`mt-3 overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-screen' : 'max-h-0'}`}>
-                            <div className="border-t border-slate-200 pt-3 space-y-2">
-                                {toppings.map(topping => (
-                                    <div key={topping.id} className="flex justify-between items-center p-1">
-                                        <div>
-                                            <p className="text-sm font-medium text-slate-700">{topping.name}</p>
-                                            <p className="text-sm text-slate-500">{vnd(topping.price)}</p>
-                                        </div>
-                                        <Switch checked={topping.available} onChange={() => toggleToppingAvailability(topping)} />
-                                    </div>
-                                ))}
-                                <div className="flex gap-2 pt-2">
-                                    <Button size="sm" variant="outline" className="flex-1" onClick={() => onEdit(group)}>Sửa</Button>
-                                    <Button size="sm" variant="destructive" className="flex-1" onClick={() => onDelete(group)}>Xóa</Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-            );
-        };
-        
-        // ===== Menu Management Main Page =====
-        function MenuPage({ menu, categories, toppingGroups, allToppings, updateItemProperty, setEditingItem, handleAddCategory }) {
-            const [activeTab, setActiveTab] = useState('items'); // 'items' or 'groups'
-            
-            return (
-                <div>
-                    <h2 className="text-2xl font-bold my-4 text-slate-800">Thực đơn</h2>
-                    <div className="border-b border-slate-200">
-                        <nav className="-mb-px flex space-x-6">
-                            <button onClick={() => setActiveTab('items')} className={`py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'items' ? 'border-orange-500 brand-color' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>Món</button>
-                            <button onClick={() => setActiveTab('groups')} className={`py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'groups' ? 'border-orange-500 brand-color' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>Tuỳ chọn nhóm</button>
-                        </nav>
-                    </div>
-                    <div className="mt-4">
-                        {activeTab === 'items' && <MenuManager menu={menu} categories={categories} updateItemProperty={updateItemProperty} setEditingItem={setEditingItem} handleAddCategory={handleAddCategory} />}
-                        {activeTab === 'groups' && <ToppingManager allToppingGroups={toppingGroups} allToppings={allToppings} menu={menu} />}
-                    </div>
-                </div>
-            );
-        }
-
-        function MenuManager({ menu, categories, updateItemProperty, setEditingItem, handleAddCategory }) {
-            const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-            const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-            const [newCategoryName, setNewCategoryName] = useState("");
-            
-            // ===== THAY ĐỔI: Thêm state và logic cho việc kéo thả =====
-            const [localMenu, setLocalMenu] = useState(menu);
-            const dragItem = useRef(null);
-            const dragOverItem = useRef(null);
-
-            useEffect(() => {
-                setLocalMenu(menu);
-            }, [menu]);
-
-            const handleSort = async () => {
-                if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
-                    return;
-                }
-
-                let _menu = [...localMenu];
-                const draggedItemContent = _menu.splice(dragItem.current, 1)[0];
-                _menu.splice(dragOverItem.current, 0, draggedItemContent);
-
-                dragItem.current = null;
-                dragOverItem.current = null;
-
-                setLocalMenu(_menu);
-                
-                try {
-                    const batch = writeBatch(db);
-                    _menu.forEach((item, index) => {
-                        const itemRef = doc(db, "menu", item.id);
-                        batch.update(itemRef, { order: index });
-                    });
-                    await batch.commit();
-                } catch (error) {
-                    console.error("Lỗi khi sắp xếp món ăn:", error);
-                    setLocalMenu(menu); // Quay lại trạng thái cũ nếu có lỗi
-                }
-            };
-
-            const handleAddNewItem = () => {
-                setEditingItem({ isNew: true, name: "", price: "", compareAtPrice: "", photo: "", category: categories[0]?.name || "", description: "", available: true, isPromo: false, bestSeller: false, isDealOfDay: false, toppingGroupIds: [] });
-                setIsActionModalOpen(false);
-            };
-
-            const handleOpenCategoryModal = () => {
-                setIsActionModalOpen(false);
-                setIsCategoryModalOpen(true);
-            };
-            
-            const onAddCategory = () => {
-                if(newCategoryName.trim()){
-                    handleAddCategory(newCategoryName.trim());
-                    setNewCategoryName("");
-                    setIsCategoryModalOpen(false);
-                }
-            };
-
-            return (
-                <div className="relative min-h-[calc(100vh-16rem)]">
-                    {/* ===== THAY ĐỔI: Sử dụng `localMenu` và thêm các thuộc tính kéo thả ===== */}
-                    <div className="space-y-3">
-                        {localMenu.map((item, index) => (
-                            <div 
-                                key={item.id} 
-                                draggable
-                                onDragStart={() => (dragItem.current = index)}
-                                onDragEnter={() => (dragOverItem.current = index)}
-                                onDragEnd={handleSort}
-                                onDragOver={(e) => e.preventDefault()}
-                                className="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm active:bg-slate-50"
-                            >
-                                <span className="cursor-grab">
-                                    <GripVerticalIcon />
-                                </span>
-                                <img 
-                                    src={item.photo} 
-                                    alt={item.name} 
-                                    className="w-16 h-16 object-cover rounded-lg cursor-pointer" 
-                                    onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}
-                                    onClick={() => setEditingItem(item)}
+                                <label className="block text-sm font-medium text-slate-600 mb-1">Email</label>
+                                <Input 
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="admin@example.com"
+                                    required
                                 />
-                                <div className="flex-1 cursor-pointer" onClick={() => setEditingItem(item)}>
-                                    <p className="font-semibold text-slate-800">{item.name}</p>
-                                    <p className="text-sm text-slate-600">{vnd(item.price)}</p>
-                                    {!item.available && <p className="text-xs text-red-500">Hết hàng</p>}
-                                </div>
-                                <Switch checked={item.available} onChange={(e) => { e.stopPropagation(); updateItemProperty(item.id, { available: !item.available })}} />
                             </div>
-                        ))}
-                    </div>
-                    
-                    <button onClick={() => setIsActionModalOpen(true)} className="fixed bottom-24 right-5 brand-bg text-white rounded-full p-4 shadow-lg hover:opacity-90 transition-all duration-300 transform hover:scale-110">
-                        <PlusIcon />
-                    </button>
-
-                    {isActionModalOpen && (
-                        <div className="fixed inset-0 z-50 flex items-end">
-                            <div className="absolute inset-0 bg-black/40" onClick={() => setIsActionModalOpen(false)}></div>
-                            <div className="relative bg-white w-full rounded-t-2xl p-4 space-y-2">
-                                <button onClick={handleAddNewItem} className="w-full text-left p-3 font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">Thêm món</button>
-                                <button onClick={handleOpenCategoryModal} className="w-full text-left p-3 font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">Thêm danh mục mới</button>
-                                <button onClick={() => setIsActionModalOpen(false)} className="fixed top-4 right-4 bg-white/50 rounded-full p-2">
-                                    <XIcon />
-                                </button>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-600 mb-1">Mật khẩu</label>
+                                <Input 
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    required
+                                />
                             </div>
-                        </div>
-                    )}
-                    
-                    {isCategoryModalOpen && (
-                         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60">
-                            <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4">
-                                <h3 className="text-lg font-semibold">Thêm danh mục mới</h3>
-                                <Input className="mt-4" placeholder="Tên danh mục" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
-                                <div className="flex justify-end gap-2 mt-4">
-                                    <Button variant="outline" onClick={() => setIsCategoryModalOpen(false)}>Hủy</Button>
-                                    <Button onClick={onAddCategory}>Thêm</Button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        function OrdersPage({ orders }) {
-            const updateOrderStatus = async (orderId, status) => {
-                try {
-                    await updateDoc(doc(db, "orders", orderId), { status });
-                } catch (e) {
-                    console.error("Lỗi cập nhật đơn hàng:", e);
-                }
-            };
-            
-            const getStatusDisplay = (status) => {
-              switch (status) {
-                  case 'pending': return { text: 'Đang chờ', className: 'bg-yellow-100 text-yellow-800' };
-                  case 'processing': return { text: 'Đang làm', className: 'bg-blue-100 text-blue-800' };
-                  case 'completed': return { text: 'Hoàn thành', className: 'bg-green-100 text-green-800' };
-                  case 'canceled': return { text: 'Đã hủy', className: 'bg-red-100 text-red-800' };
-                  default: return { text: 'Không xác định', className: 'bg-gray-100 text-gray-800' };
-              }
-            };
-
-            return (
-                <div>
-                    <h2 className="text-2xl font-bold my-4 text-slate-800">Đơn hàng</h2>
-                    <div className="space-y-3">
-                        {orders.length === 0 && <p className="text-slate-500 text-center py-10">Chưa có đơn hàng nào.</p>}
-                        {orders.map(order => {
-                            const statusDisplay = getStatusDisplay(order.status);
-                            return (
-                                <Card key={order.id}>
-                                    <div className="p-4">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-bold text-slate-800">#{String(order.createdAt).slice(-6)} - {order.contact}</p>
-                                                <p className="text-xs text-slate-500">{new Date(order.createdAt).toLocaleString('vi-VN')}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="font-bold text-lg brand-color">{vnd(order.total)}</p>
-                                                <span className={`text-xs font-semibold px-2 py-1 rounded-full mt-1 inline-block ${statusDisplay.className}`}>{statusDisplay.text}</span>
-                                            </div>
-                                        </div>
-                                        <div className="text-xs mt-2">Thanh toán: <span className="font-semibold">{order.payment === 'TIENMAT' ? 'Tiền mặt' : 'Chuyển khoản'}</span></div>
-                                        <div className="border-t my-2"></div>
-                                        <ul className="text-sm space-y-2">
-                                            {order.items.map((item, index) => (
-                                                <li key={index}>
-                                                    <p className="font-medium">{item.qty} x {item.name}</p>
-                                                    {item.selectedToppings && item.selectedToppings.length > 0 && (
-                                                        <div className="pl-4 text-xs text-slate-500 border-l-2 ml-1">
-                                                            {item.selectedToppings.map((t, i) => <p key={i}>+ {t.name}</p>)}
-                                                        </div>
-                                                    )}
-                                                    {item.note && <p className="text-xs text-blue-600 mt-1">Ghi chú: {item.note}</p>}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                        {order.status === 'pending' && (
-                                            <div className="flex gap-2 mt-3">
-                                                <Button size="sm" className="flex-1 brand-bg" onClick={() => updateOrderStatus(order.id, 'processing')}>Xác nhận</Button>
-                                                <Button size="sm" variant="destructive" className="flex-1" onClick={() => updateOrderStatus(order.id, 'canceled')}>Hủy đơn</Button>
-                                            </div>
-                                        )}
-                                        {order.status === 'processing' && (
-                                            <div className="flex gap-2 mt-3">
-                                                <Button size="sm" className="flex-1" onClick={() => updateOrderStatus(order.id, 'completed')}>Hoàn thành</Button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </Card>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
-        }
-        
-        function StatsPage({ orders, menu }) {
-            const [filter, setFilter] = useState('today');
-
-            const filteredOrders = useMemo(() => {
-                const now = new Date();
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                
-                const startOfWeek = new Date(today);
-                startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Monday as first day
-
-                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-                return orders.filter(o => {
-                    if (o.status !== 'completed') return false;
-                    const orderDate = new Date(o.createdAt);
-                    switch (filter) {
-                        case 'today':
-                            return orderDate >= today;
-                        case 'week':
-                            return orderDate >= startOfWeek;
-                        case 'month':
-                            return orderDate >= startOfMonth;
-                        default:
-                            return true;
-                    }
-                });
-            }, [orders, filter]);
-
-            const totalRevenue = useMemo(() => filteredOrders.reduce((sum, order) => sum + order.total, 0), [filteredOrders]);
-            const totalOrders = filteredOrders.length;
-            const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-            const bestSellers = useMemo(() => {
-                if (!filteredOrders.length) return [];
-                const itemCounts = {};
-                filteredOrders.forEach(order => {
-                    order.items.forEach(item => {
-                        itemCounts[item.name] = (itemCounts[item.name] || 0) + item.qty;
-                    });
-                });
-                return Object.entries(itemCounts)
-                    .sort(([, qtyA], [, qtyB]) => qtyB - qtyA)
-                    .slice(0, 5)
-                    .map(([name, quantity]) => ({ name, quantity }));
-            }, [filteredOrders]);
-            
-            const StatCard = ({ title, value, subtext }) => (
-                <Card className="p-4">
-                    <p className="text-sm font-medium text-slate-500">{title}</p>
-                    <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p>
-                    {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>}
-                </Card>
-            );
-
-            return (
-                <div>
-                    <h2 className="text-2xl font-bold my-4 text-slate-800">Thống kê</h2>
-                    
-                    <div className="flex bg-slate-200 rounded-lg p-1 mb-4">
-                        <button onClick={() => setFilter('today')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'today' ? 'bg-white shadow-sm' : ''}`}>Hôm nay</button>
-                        <button onClick={() => setFilter('week')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'week' ? 'bg-white shadow-sm' : ''}`}>Tuần này</button>
-                        <button onClick={() => setFilter('month')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'month' ? 'bg-white shadow-sm' : ''}`}>Tháng này</button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <StatCard title="Doanh thu" value={vnd(totalRevenue)} />
-                        <StatCard title="Đơn hàng" value={totalOrders} />
-                    </div>
-                     <div className="mt-4">
-                        <StatCard title="Trung bình/đơn" value={vnd(averageOrderValue)} />
-                    </div>
-
-                    <div className="mt-6">
-                        <h3 className="text-lg font-bold text-slate-800 mb-3">Món bán chạy nhất</h3>
-                        {bestSellers.length > 0 ? (
-                            <Card className="p-4">
-                                <ul className="space-y-3">
-                                    {bestSellers.map((item, index) => (
-                                        <li key={item.name} className="flex items-center justify-between text-sm">
-                                            <span className="font-medium text-slate-700">{index + 1}. {item.name}</span>
-                                            <span className="font-bold text-slate-800">{item.quantity} <span className="font-normal text-slate-500">lượt</span></span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </Card>
-                        ) : (
-                            <div className="text-center text-slate-500 py-10">
-                                <p>Không có dữ liệu cho khoảng thời gian này.</p>
-                            </div>
-                        )}
+                            {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                            <Button type="submit" className="w-full" isLoading={isLoading}>
+                                {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                            </Button>
+                        </form>
                     </div>
                 </div>
             );
         }
 
-        function App() {
-          const [isAuthenticated, setIsAuthenticated] = useState(true);
-          const [menu, setMenu] = useState([]);
-          const [categories, setCategories] = useState([]);
-          const [orders, setOrders] = useState([]);
-          const [toppingGroups, setToppingGroups] = useState([]);
-          const [toppings, setToppings] = useState([]);
-          const [storeStatus, setStoreStatus] = useState({ isOpen: true });
-          const [loading, setLoading] = useState(true);
-          const [adminTab, setAdminTab] = useState("orders");
-          const [editingItem, setEditingItem] = useState(null);
-          const [itemToDelete, setItemToDelete] = useState(null);
-          
-          const initialLoad = useRef(true);
+        // ===== Toàn bộ các component của trang quản trị được giữ nguyên từ file gốc =====
+        // ... (Code của ToppingManager, ToppingGroupCard, MenuPage, MenuManager, OrdersPage, StatsPage) ...
+        function ToppingManager({ allToppingGroups, allToppings, menu }) { const [view, setView] = useState('list'); const [currentGroup, setCurrentGroup] = useState(null); const [options, setOptions] = useState([]); const [groupToDelete, setGroupToDelete] = useState(null); const handleAddNewGroup = () => { setCurrentGroup({ name: '', type: 'single', maxSelection: 1, required: true }); setOptions([{ id: `temp-${Date.now()}`, name: '', price: 0, available: true }]); setView('edit'); }; const handleEditGroup = (group) => { setCurrentGroup(group); const groupToppings = allToppings.filter(t => t.groupId === group.id); setOptions(groupToppings); setView('edit'); }; const handleSave = async () => { if (!currentGroup || !currentGroup.name.trim()) { alert('Vui lòng nhập tên nhóm.'); return; } const batch = writeBatch(db); let groupId = currentGroup.id; const groupData = { name: currentGroup.name.trim(), type: currentGroup.type, maxSelection: currentGroup.type === 'multiple' ? Number(currentGroup.maxSelection) : 1, required: currentGroup.required, }; if (groupId) { batch.update(doc(db, "toppingGroups", groupId), groupData); } else { const newGroupRef = doc(collection(db, "toppingGroups")); batch.set(newGroupRef, groupData); groupId = newGroupRef.id; } const existingOptionIds = allToppings.filter(t => t.groupId === groupId).map(t => t.id); const currentOptionIds = options.map(o => o.id).filter(id => !String(id).startsWith('temp-')); const optionsToDelete = existingOptionIds.filter(id => !currentOptionIds.includes(id)); optionsToDelete.forEach(id => batch.delete(doc(db, "toppings", id))); options.forEach(option => { if (!option.name.trim()) return; const optionData = { name: option.name.trim(), price: Number(option.price) || 0, available: option.available, groupId: groupId }; if (String(option.id).startsWith('temp-')) { batch.set(doc(collection(db, "toppings")), optionData); } else { batch.update(doc(db, "toppings", option.id), optionData); } }); await batch.commit(); setView('list'); setCurrentGroup(null); setOptions([]); }; const confirmDeleteGroup = async () => { if (!groupToDelete) return; const batch = writeBatch(db); batch.delete(doc(db, "toppingGroups", groupToDelete.id)); const toppingsInGroupQuery = query(collection(db, "toppings"), where("groupId", "==", groupToDelete.id)); const toppingsSnapshot = await getDocs(toppingsInGroupQuery); toppingsSnapshot.forEach(d => batch.delete(d.ref)); const menuItemsToUpdate = menu.filter(item => item.toppingGroupIds && item.toppingGroupIds.includes(groupToDelete.id)); menuItemsToUpdate.forEach(item => { const updatedGroupIds = item.toppingGroupIds.filter(id => id !== groupToDelete.id); batch.update(doc(db, "menu", item.id), { toppingGroupIds: updatedGroupIds }); }); await batch.commit(); setGroupToDelete(null); }; const updateOption = (id, field, value) => { setOptions(options.map(o => o.id === id ? { ...o, [field]: value } : o)); }; const addOption = () => { setOptions([...options, { id: `temp-${Date.now()}`, name: '', price: 0, available: true }]); }; const removeOption = (id) => { setOptions(options.filter(o => o.id !== id)); }; if (view === 'edit') { return ( <div className="bg-white min-h-screen"> <header className="sticky top-0 z-10 bg-white flex items-center justify-between p-3 border-b border-slate-200"> <Button variant="ghost" size="icon" onClick={() => setView('list')}><ChevronLeftIcon /></Button> <h2 className="font-bold text-lg text-slate-800">{currentGroup.id ? 'Sửa Nhóm Tuỳ Chọn' : 'Tạo Nhóm Tuỳ Chọn'}</h2> <Button size="sm" onClick={handleSave}>Lưu</Button> </header> <main className="p-4 space-y-6"> <div> <label className="font-semibold text-sm text-slate-700">Tên nhóm tuỳ chọn <span className="text-red-500">*</span></label> <Input className="mt-1" value={currentGroup.name} onChange={e => setCurrentGroup({...currentGroup, name: e.target.value})} /> </div> <div> <h3 className="font-semibold text-sm text-slate-700 mb-2">Tuỳ chọn</h3> <div className="space-y-2"> {options.map((option) => ( <div key={option.id} className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg"> <div className="flex-1 space-y-2"> <Input placeholder="Tên tuỳ chọn (ví dụ: Nhỏ, Vừa, Lớn)" value={option.name} onChange={e => updateOption(option.id, 'name', e.target.value)} /> <Input type="number" placeholder="Giá (ví dụ: 5000)" value={option.price} onChange={e => updateOption(option.id, 'price', e.target.value)} /> </div> <Button variant="ghost" size="icon" onClick={() => removeOption(option.id)}><Trash2Icon className="text-red-500"/></Button> </div> ))} </div> <Button variant="outline" className="w-full mt-3" onClick={addOption}><PlusIcon /> Thêm tuỳ chọn mới</Button> </div> <div className="border-t border-slate-200 pt-4 space-y-2"> <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50"> <div> <p className="font-medium text-slate-800">Bắt buộc chọn</p> <p className="text-xs text-slate-500">Khách hàng phải chọn ít nhất 1 mục.</p> </div> <Switch checked={currentGroup.required} onChange={() => setCurrentGroup({...currentGroup, required: !currentGroup.required})} /> </div> <div className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50"> <div> <p className="font-medium text-slate-800">Cho phép chọn nhiều</p> <p className="text-xs text-slate-500">Cho phép khách chọn nhiều tuỳ chọn.</p> </div> <Switch checked={currentGroup.type === 'multiple'} onChange={() => setCurrentGroup({...currentGroup, type: currentGroup.type === 'multiple' ? 'single' : 'multiple'})} /> </div> {currentGroup.type === 'multiple' && ( <div className="p-2"> <label className="font-medium text-sm text-slate-700">Số lượng tối đa có thể chọn</label> <Input type="number" className="mt-1" value={currentGroup.maxSelection} onChange={e => setCurrentGroup({...currentGroup, maxSelection: e.target.value})} /> </div> )} </div> </main> </div> ); } return ( <div className="relative min-h-[calc(100vh-12rem)]"> {allToppingGroups.length > 0 ? ( <div className="space-y-4"> {allToppingGroups.map(group => <ToppingGroupCard key={group.id} group={group} toppings={allToppings.filter(t => t.groupId === group.id)} menu={menu} onEdit={handleEditGroup} onDelete={setGroupToDelete} />)} </div> ) : ( <div className="text-center text-slate-500 mt-16"> <p className="font-semibold">Chưa có nhóm tuỳ chọn nào.</p> <p className="text-sm mt-1">Hãy nhấn nút + ở góc dưới để bắt đầu tạo.</p> </div> )} <button onClick={handleAddNewGroup} className="fixed bottom-24 right-5 bg-slate-900 text-white rounded-full p-4 shadow-lg hover:bg-slate-700 transition-all duration-300 transform hover:scale-110"> <PlusIcon /> </button> {groupToDelete && (<div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"><div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4"><h3 className="text-lg font-semibold">Xác nhận xóa nhóm?</h3><p className="text-sm text-slate-500 mt-1">Bạn có chắc muốn xóa nhóm <strong>"{groupToDelete.name}"</strong>? Mọi topping trong nhóm cũng sẽ bị xóa.</p><div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setGroupToDelete(null)}>Hủy</Button><Button variant="destructive" onClick={confirmDeleteGroup}>Xác nhận xóa</Button></div></div></div>)} </div> ); }
+        const ToppingGroupCard = ({ group, toppings, menu, onEdit, onDelete }) => { const [isExpanded, setIsExpanded] = useState(false); const linkedItemsCount = useMemo(() => { return menu.filter(item => item.toppingGroupIds && item.toppingGroupIds.includes(group.id)).length; }, [menu, group.id]); const toggleToppingAvailability = async (topping) => { await updateDoc(doc(db, "toppings", topping.id), { available: !topping.available }); }; return ( <Card> <div className="p-4"> <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}> <div> <p className="font-semibold text-slate-800">{group.name}</p> <p className="text-xs text-slate-500">Liên kết với {linkedItemsCount} món</p> </div> <ChevronUpIcon className={`text-slate-500 transition-transform ${isExpanded ? '' : 'rotate-180'}`} /> </div> <div className={`mt-3 overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-screen' : 'max-h-0'}`}> <div className="border-t border-slate-200 pt-3 space-y-2"> {toppings.map(topping => ( <div key={topping.id} className="flex justify-between items-center p-1"> <div> <p className="text-sm font-medium text-slate-700">{topping.name}</p> <p className="text-sm text-slate-500">{vnd(topping.price)}</p> </div> <Switch checked={topping.available} onChange={() => toggleToppingAvailability(topping)} /> </div> ))} <div className="flex gap-2 pt-2"> <Button size="sm" variant="outline" className="flex-1" onClick={() => onEdit(group)}>Sửa</Button> <Button size="sm" variant="destructive" className="flex-1" onClick={() => onDelete(group)}>Xóa</Button> </div> </div> </div> </div> </Card> ); };
+        function MenuPage({ menu, categories, toppingGroups, allToppings, updateItemProperty, setEditingItem, handleAddCategory }) { const [activeTab, setActiveTab] = useState('items'); return ( <div> <h2 className="text-2xl font-bold my-4 text-slate-800">Thực đơn</h2> <div className="border-b border-slate-200"> <nav className="-mb-px flex space-x-6"> <button onClick={() => setActiveTab('items')} className={`py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'items' ? 'border-orange-500 brand-color' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>Món</button> <button onClick={() => setActiveTab('groups')} className={`py-3 px-1 border-b-2 font-semibold text-sm ${activeTab === 'groups' ? 'border-orange-500 brand-color' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>Tuỳ chọn nhóm</button> </nav> </div> <div className="mt-4"> {activeTab === 'items' && <MenuManager menu={menu} categories={categories} updateItemProperty={updateItemProperty} setEditingItem={setEditingItem} handleAddCategory={handleAddCategory} />} {activeTab === 'groups' && <ToppingManager allToppingGroups={toppingGroups} allToppings={allToppings} menu={menu} />} </div> </div> ); }
+        function MenuManager({ menu, categories, updateItemProperty, setEditingItem, handleAddCategory }) { const [isActionModalOpen, setIsActionModalOpen] = useState(false); const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false); const [newCategoryName, setNewCategoryName] = useState(""); const [localMenu, setLocalMenu] = useState(menu); const dragItem = useRef(null); const dragOverItem = useRef(null); useEffect(() => { setLocalMenu(menu); }, [menu]); const handleSort = async () => { if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) { return; } let _menu = [...localMenu]; const draggedItemContent = _menu.splice(dragItem.current, 1)[0]; _menu.splice(dragOverItem.current, 0, draggedItemContent); dragItem.current = null; dragOverItem.current = null; setLocalMenu(_menu); try { const batch = writeBatch(db); _menu.forEach((item, index) => { const itemRef = doc(db, "menu", item.id); batch.update(itemRef, { order: index }); }); await batch.commit(); } catch (error) { console.error("Lỗi khi sắp xếp món ăn:", error); setLocalMenu(menu); } }; const handleAddNewItem = () => { setEditingItem({ isNew: true, name: "", price: "", compareAtPrice: "", photo: "", category: categories[0]?.name || "", description: "", available: true, isPromo: false, bestSeller: false, isDealOfDay: false, toppingGroupIds: [] }); setIsActionModalOpen(false); }; const handleOpenCategoryModal = () => { setIsActionModalOpen(false); setIsCategoryModalOpen(true); }; const onAddCategory = () => { if(newCategoryName.trim()){ handleAddCategory(newCategoryName.trim()); setNewCategoryName(""); setIsCategoryModalOpen(false); } }; return ( <div className="relative min-h-[calc(100vh-16rem)]"> <div className="space-y-3"> {localMenu.map((item, index) => ( <div key={item.id} draggable onDragStart={() => (dragItem.current = index)} onDragEnter={() => (dragOverItem.current = index)} onDragEnd={handleSort} onDragOver={(e) => e.preventDefault()} className="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm active:bg-slate-50" > <span className="cursor-grab"> <GripVerticalIcon /> </span> <img src={item.photo} alt={item.name} className="w-16 h-16 object-cover rounded-lg cursor-pointer" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }} onClick={() => setEditingItem(item)} /> <div className="flex-1 cursor-pointer" onClick={() => setEditingItem(item)}> <p className="font-semibold text-slate-800">{item.name}</p> <p className="text-sm text-slate-600">{vnd(item.price)}</p> {!item.available && <p className="text-xs text-red-500">Hết hàng</p>} </div> <Switch checked={item.available} onChange={(e) => { e.stopPropagation(); updateItemProperty(item.id, { available: !item.available })}} /> </div> ))} </div> <button onClick={() => setIsActionModalOpen(true)} className="fixed bottom-24 right-5 brand-bg text-white rounded-full p-4 shadow-lg hover:opacity-90 transition-all duration-300 transform hover:scale-110"> <PlusIcon /> </button> {isActionModalOpen && ( <div className="fixed inset-0 z-50 flex items-end"> <div className="absolute inset-0 bg-black/40" onClick={() => setIsActionModalOpen(false)}></div> <div className="relative bg-white w-full rounded-t-2xl p-4 space-y-2"> <button onClick={handleAddNewItem} className="w-full text-left p-3 font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">Thêm món</button> <button onClick={handleOpenCategoryModal} className="w-full text-left p-3 font-semibold text-slate-700 hover:bg-slate-100 rounded-lg">Thêm danh mục mới</button> <button onClick={() => setIsActionModalOpen(false)} className="fixed top-4 right-4 bg-white/50 rounded-full p-2"> <XIcon /> </button> </div> </div> )} {isCategoryModalOpen && ( <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60"> <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4"> <h3 className="text-lg font-semibold">Thêm danh mục mới</h3> <Input className="mt-4" placeholder="Tên danh mục" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} /> <div className="flex justify-end gap-2 mt-4"> <Button variant="outline" onClick={() => setIsCategoryModalOpen(false)}>Hủy</Button> <Button onClick={onAddCategory}>Thêm</Button> </div> </div> </div> )} </div> ); }
+        function OrdersPage({ orders }) { const updateOrderStatus = async (orderId, status) => { try { await updateDoc(doc(db, "orders", orderId), { status }); } catch (e) { console.error("Lỗi cập nhật đơn hàng:", e); } }; const getStatusDisplay = (status) => { switch (status) { case 'pending': return { text: 'Đang chờ', className: 'bg-yellow-100 text-yellow-800' }; case 'processing': return { text: 'Đang làm', className: 'bg-blue-100 text-blue-800' }; case 'completed': return { text: 'Hoàn thành', className: 'bg-green-100 text-green-800' }; case 'canceled': return { text: 'Đã hủy', className: 'bg-red-100 text-red-800' }; default: return { text: 'Không xác định', className: 'bg-gray-100 text-gray-800' }; } }; return ( <div> <h2 className="text-2xl font-bold my-4 text-slate-800">Đơn hàng</h2> <div className="space-y-3"> {orders.length === 0 && <p className="text-slate-500 text-center py-10">Chưa có đơn hàng nào.</p>} {orders.map(order => { const statusDisplay = getStatusDisplay(order.status); return ( <Card key={order.id}> <div className="p-4"> <div className="flex justify-between items-start"> <div> <p className="font-bold text-slate-800">#{String(order.createdAt).slice(-6)} - {order.contact}</p> <p className="text-xs text-slate-500">{new Date(order.createdAt).toLocaleString('vi-VN')}</p> </div> <div className="text-right"> <p className="font-bold text-lg brand-color">{vnd(order.total)}</p> <span className={`text-xs font-semibold px-2 py-1 rounded-full mt-1 inline-block ${statusDisplay.className}`}>{statusDisplay.text}</span> </div> </div> <div className="text-xs mt-2">Thanh toán: <span className="font-semibold">{order.payment === 'TIENMAT' ? 'Tiền mặt' : 'Chuyển khoản'}</span></div> <div className="border-t my-2"></div> <ul className="text-sm space-y-2"> {order.items.map((item, index) => ( <li key={index}> <p className="font-medium">{item.qty} x {item.name}</p> {item.selectedToppings && item.selectedToppings.length > 0 && ( <div className="pl-4 text-xs text-slate-500 border-l-2 ml-1"> {item.selectedToppings.map((t, i) => <p key={i}>+ {t.name}</p>)} </div> )} {item.note && <p className="text-xs text-blue-600 mt-1">Ghi chú: {item.note}</p>} </li> ))} </ul> {order.status === 'pending' && ( <div className="flex gap-2 mt-3"> <Button size="sm" className="flex-1 brand-bg" onClick={() => updateOrderStatus(order.id, 'processing')}>Xác nhận</Button> <Button size="sm" variant="destructive" className="flex-1" onClick={() => updateOrderStatus(order.id, 'canceled')}>Hủy đơn</Button> </div> )} {order.status === 'processing' && ( <div className="flex gap-2 mt-3"> <Button size="sm" className="flex-1" onClick={() => updateOrderStatus(order.id, 'completed')}>Hoàn thành</Button> </div> )} </div> </Card> ); })} </div> </div> ); }
+        function StatsPage({ orders, menu }) { const [filter, setFilter] = useState('today'); const filteredOrders = useMemo(() => { const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); const startOfWeek = new Date(today); startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); return orders.filter(o => { if (o.status !== 'completed') return false; const orderDate = new Date(o.createdAt); switch (filter) { case 'today': return orderDate >= today; case 'week': return orderDate >= startOfWeek; case 'month': return orderDate >= startOfMonth; default: return true; } }); }, [orders, filter]); const totalRevenue = useMemo(() => filteredOrders.reduce((sum, order) => sum + order.total, 0), [filteredOrders]); const totalOrders = filteredOrders.length; const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0; const bestSellers = useMemo(() => { if (!filteredOrders.length) return []; const itemCounts = {}; filteredOrders.forEach(order => { order.items.forEach(item => { itemCounts[item.name] = (itemCounts[item.name] || 0) + item.qty; }); }); return Object.entries(itemCounts) .sort(([, qtyA], [, qtyB]) => qtyB - qtyA) .slice(0, 5) .map(([name, quantity]) => ({ name, quantity })); }, [filteredOrders]); const StatCard = ({ title, value, subtext }) => ( <Card className="p-4"> <p className="text-sm font-medium text-slate-500">{title}</p> <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p> {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>} </Card> ); return ( <div> <h2 className="text-2xl font-bold my-4 text-slate-800">Thống kê</h2> <div className="flex bg-slate-200 rounded-lg p-1 mb-4"> <button onClick={() => setFilter('today')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'today' ? 'bg-white shadow-sm' : ''}`}>Hôm nay</button> <button onClick={() => setFilter('week')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'week' ? 'bg-white shadow-sm' : ''}`}>Tuần này</button> <button onClick={() => setFilter('month')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'month' ? 'bg-white shadow-sm' : ''}`}>Tháng này</button> </div> <div className="grid grid-cols-2 gap-4"> <StatCard title="Doanh thu" value={vnd(totalRevenue)} /> <StatCard title="Đơn hàng" value={totalOrders} /> </div> <div className="mt-4"> <StatCard title="Trung bình/đơn" value={vnd(averageOrderValue)} /> </div> <div className="mt-6"> <h3 className="text-lg font-bold text-slate-800 mb-3">Món bán chạy nhất</h3> {bestSellers.length > 0 ? ( <Card className="p-4"> <ul className="space-y-3"> {bestSellers.map((item, index) => ( <li key={item.name} className="flex items-center justify-between text-sm"> <span className="font-medium text-slate-700">{index + 1}. {item.name}</span> <span className="font-bold text-slate-800">{item.quantity} <span className="font-normal text-slate-500">lượt</span></span> </li> ))} </ul> </Card> ) : ( <div className="text-center text-slate-500 py-10"> <p>Không có dữ liệu cho khoảng thời gian này.</p> </div> )} </div> </div> ); }
 
-          const playNotificationSound = useCallback(() => {
-              try {
-                  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                  const oscillator = audioContext.createOscillator();
-                  const gainNode = audioContext.createGain();
-                  oscillator.connect(gainNode); gainNode.connect(audioContext.destination);
-                  gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                  gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.05);
-                  oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-                  oscillator.start(audioContext.currentTime);
-                  gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
-                  oscillator.stop(audioContext.currentTime + 0.5);
-              } catch (error) { console.error("Could not play sound:", error); }
-          }, []);
-
-          useEffect(() => {
-            if (!isAuthenticated) return;
-            const unsubscribers = [];
-            const collectionsToFetch = [
-                { name: "menu", setter: setMenu, query: query(collection(db, "menu"), orderBy("order", "asc")) },
-                { name: "categories", setter: setCategories, query: query(collection(db, "categories"), orderBy("name", "asc")) },
-                { name: "orders", setter: (data) => {
-                    if (!initialLoad.current && data.length > orders.length) {
-                        playNotificationSound();
-                    }
-                    setOrders(data);
-                    initialLoad.current = false;
-                }, query: query(collection(db, "orders"), orderBy("createdAt", "desc")) },
-                { name: "toppingGroups", setter: setToppingGroups, query: query(collection(db, "toppingGroups"), orderBy("name", "asc")) },
-                { name: "toppings", setter: setToppings, query: query(collection(db, "toppings")) }
-            ];
-
-            collectionsToFetch.forEach(({ setter, query }) => {
-                unsubscribers.push(onSnapshot(query, (snapshot) => {
-                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    setter(data);
-                }));
-            });
-            
-            const storeStatusRef = doc(db, "settings", "storeStatus");
-            unsubscribers.push(onSnapshot(storeStatusRef, (doc) => doc.exists() ? setStoreStatus(doc.data()) : setDoc(doc.ref, { isOpen: true })));
-            
-            setLoading(false);
-            return () => unsubscribers.forEach(unsub => unsub());
-          }, [isAuthenticated, playNotificationSound, orders.length]);
-
-          const pendingOrderCount = useMemo(() => orders.filter(o => o.status === 'pending').length, [orders]);
-          
-          const updateItemProperty = async (id, data) => { try { await updateDoc(doc(db, "menu", id), data); } catch (e) { console.error("Lỗi cập nhật món:", e); } };
-          
-          const handleSaveItem = async () => {
-              if (!editingItem || !editingItem.name) return;
-              const { isNew, id, ...itemData } = editingItem;
-              itemData.price = Number(itemData.price);
-              itemData.compareAtPrice = itemData.compareAtPrice ? Number(itemData.compareAtPrice) : 0;
-              
-              try {
-                  if (isNew) {
-                      itemData.order = menu.length;
-                      await addDoc(collection(db, "menu"), itemData);
-                  } else {
-                      await updateDoc(doc(db, "menu", id), itemData);
-                  }
-                  setEditingItem(null);
-              } catch (e) {
-                  console.error("Lỗi lưu món:", e);
-              }
-          };
-
-          const handleDeleteItem = async () => {
-              if (!itemToDelete) return;
-              try {
-                  await deleteDoc(doc(db, "menu", itemToDelete.id));
-                  setItemToDelete(null);
-                  setEditingItem(null); 
-              } catch (e) { console.error("Lỗi xóa món:", e); }
-          };
-
-          const handleAddCategory = async (name) => {
-              if (!name || categories.find(c => c.name === name)) return;
-              try { await addDoc(collection(db, "categories"), { name }); } 
-              catch (e) { console.error("Lỗi khi thêm danh mục:", e); }
-          };
-
-          const handleImageUpload = (event) => {
-              const file = event.target.files?.[0];
-              if (file) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                      setEditingItem(prev => ({ ...prev, photo: reader.result }));
-                  };
-                  reader.readAsDataURL(file);
-              }
-          };
-
-          const handleToppingGroupChange = (groupId) => {
-              setEditingItem(prev => {
-                  const existingGroupIds = prev.toppingGroupIds || [];
-                  const newGroupIds = existingGroupIds.includes(groupId)
-                      ? existingGroupIds.filter(id => id !== groupId)
-                      : [...existingGroupIds, groupId];
-                  return { ...prev, toppingGroupIds: newGroupIds };
-              });
-          };
-
-          if (loading) {
-              return <div className="min-h-screen flex items-center justify-center">Đang tải dữ liệu quản trị...</div>
-          }
-
+        // ===== Main App Component (Giữ nguyên) =====
+        function App({onLogout}) {
+          const [menu, setMenu] = useState([]); const [categories, setCategories] = useState([]); const [orders, setOrders] = useState([]); const [toppingGroups, setToppingGroups] = useState([]); const [toppings, setToppings] = useState([]); const [storeStatus, setStoreStatus] = useState({ isOpen: true }); const [loading, setLoading] = useState(true); const [adminTab, setAdminTab] = useState("orders"); const [editingItem, setEditingItem] = useState(null); const [itemToDelete, setItemToDelete] = useState(null); const initialLoad = useRef(true); const playNotificationSound = useCallback(() => { try { const audioContext = new (window.AudioContext || window.webkitAudioContext)(); const oscillator = audioContext.createOscillator(); const gainNode = audioContext.createGain(); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); gainNode.gain.setValueAtTime(0, audioContext.currentTime); gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.05); oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(880, audioContext.currentTime); oscillator.start(audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5); oscillator.stop(audioContext.currentTime + 0.5); } catch (error) { console.error("Could not play sound:", error); } }, []);
+          useEffect(() => { const unsubscribers = []; const collectionsToFetch = [ { name: "menu", setter: setMenu, query: query(collection(db, "menu"), orderBy("order", "asc")) }, { name: "categories", setter: setCategories, query: query(collection(db, "categories"), orderBy("name", "asc")) }, { name: "orders", setter: (data) => { if (!initialLoad.current && data.length > orders.length) { playNotificationSound(); } setOrders(data); initialLoad.current = false; }, query: query(collection(db, "orders"), orderBy("createdAt", "desc")) }, { name: "toppingGroups", setter: setToppingGroups, query: query(collection(db, "toppingGroups"), orderBy("name", "asc")) }, { name: "toppings", setter: setToppings, query: query(collection(db, "toppings")) } ]; collectionsToFetch.forEach(({ setter, query: q }) => { unsubscribers.push(onSnapshot(q, (snapshot) => { const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); setter(data); })); }); const storeStatusRef = doc(db, "settings", "storeStatus"); unsubscribers.push(onSnapshot(storeStatusRef, (doc) => doc.exists() ? setStoreStatus(doc.data()) : setDoc(doc.ref, { isOpen: true }))); setLoading(false); return () => unsubscribers.forEach(unsub => unsub()); }, [playNotificationSound, orders.length]);
+          const pendingOrderCount = useMemo(() => orders.filter(o => o.status === 'pending').length, [orders]); const updateItemProperty = async (id, data) => { try { await updateDoc(doc(db, "menu", id), data); } catch (e) { console.error("Lỗi cập nhật món:", e); } }; const handleSaveItem = async () => { if (!editingItem || !editingItem.name) return; const { isNew, id, ...itemData } = editingItem; itemData.price = Number(itemData.price); itemData.compareAtPrice = itemData.compareAtPrice ? Number(itemData.compareAtPrice) : 0; try { if (isNew) { itemData.order = menu.length; await addDoc(collection(db, "menu"), itemData); } else { await updateDoc(doc(db, "menu", id), itemData); } setEditingItem(null); } catch (e) { console.error("Lỗi lưu món:", e); } }; const handleDeleteItem = async () => { if (!itemToDelete) return; try { await deleteDoc(doc(db, "menu", itemToDelete.id)); setItemToDelete(null); setEditingItem(null); } catch (e) { console.error("Lỗi xóa món:", e); } }; const handleAddCategory = async (name) => { if (!name || categories.find(c => c.name === name)) return; try { await addDoc(collection(db, "categories"), { name }); } catch (e) { console.error("Lỗi khi thêm danh mục:", e); } }; const handleImageUpload = (event) => { const file = event.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => { setEditingItem(prev => ({ ...prev, photo: reader.result })); }; reader.readAsDataURL(file); } }; const handleToppingGroupChange = (groupId) => { setEditingItem(prev => { const existingGroupIds = prev.toppingGroupIds || []; const newGroupIds = existingGroupIds.includes(groupId) ? existingGroupIds.filter(id => id !== groupId) : [...existingGroupIds, groupId]; return { ...prev, toppingGroupIds: newGroupIds }; }); };
+          if (loading) { return <LoadingScreen text="Đang tải dữ liệu..." />; }
           return (
             <div className="min-h-screen">
               <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-200">
-                <div className="max-w-md mx-auto px-4 py-3"><h1 className="font-bold text-lg text-slate-800 text-center">TRANG QUẢN TRỊ</h1></div>
-              </header>
-
-              <main className="max-w-md mx-auto px-4 pb-24"> 
-                {adminTab === 'orders' && <OrdersPage orders={orders} />}
-                {adminTab === 'menu' && <MenuPage menu={menu} categories={categories} toppingGroups={toppingGroups} allToppings={toppings} updateItemProperty={updateItemProperty} setEditingItem={setEditingItem} handleAddCategory={handleAddCategory} />}
-                {adminTab === 'stats' && <StatsPage orders={orders} menu={menu} />}
-              </main>
-
-                <footer className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-slate-200 z-50">
-                    <div className="max-w-md mx-auto grid grid-cols-3 h-full">
-                        <button onClick={() => setAdminTab('orders')} className="relative flex flex-col items-center justify-center text-sm font-medium">
-                            <OrdersIcon className={adminTab === 'orders' ? `brand-color` : 'text-slate-400'}/>
-                            <span className={adminTab === 'orders' ? `brand-color` : 'text-slate-600'}>Đơn hàng</span>
-                            {pendingOrderCount > 0 && <span className="absolute top-2 right-6 w-4 h-4 brand-bg text-white text-xs rounded-full flex items-center justify-center">{pendingOrderCount}</span>}
-                        </button>
-                        <button onClick={() => setAdminTab('menu')} className="flex flex-col items-center justify-center text-sm font-medium">
-                            <MenuIcon className={adminTab === 'menu' ? `brand-color` : 'text-slate-400'}/>
-                            <span className={adminTab === 'menu' ? `brand-color` : 'text-slate-600'}>Thực đơn</span>
-                        </button>
-                        <button onClick={() => setAdminTab('stats')} className="flex flex-col items-center justify-center text-sm font-medium">
-                             <StatsIcon className={adminTab === 'stats' ? `brand-color` : 'text-slate-400'}/>
-                            <span className={adminTab === 'stats' ? `brand-color` : 'text-slate-600'}>Thống kê</span>
-                        </button>
-                    </div>
-                </footer>
-
-              {editingItem && (
-                <div className="fixed inset-0 z-[60] bg-slate-50 flex flex-col">
-                   <header className="sticky top-0 z-10 bg-white flex items-center justify-between p-3 border-b border-slate-200 flex-shrink-0">
-                       <Button variant="ghost" size="icon" onClick={() => setEditingItem(null)}><ChevronLeftIcon /></Button>
-                       <h2 className="font-bold text-lg text-slate-800">{editingItem.isNew ? 'Thêm Món Mới' : 'Sửa Món'}</h2>
-                       <Button size="sm" onClick={handleSaveItem}>Lưu</Button>
-                    </header>
-                    <main className="flex-1 p-4 space-y-4 overflow-y-auto">
-                        <div>
-                            <label className="text-sm font-medium text-slate-600">Tên món</label>
-                            <Input className="mt-1" placeholder="Tên món" value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-slate-600">Mô tả</label>
-                            <textarea className="mt-1 flex min-h-[80px] w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 brand-ring" placeholder="Mô tả món ăn" value={editingItem.description} onChange={e => setEditingItem({...editingItem, description: e.target.value})} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-sm font-medium text-slate-600">Giá bán (VND)</label>
-                                <Input className="mt-1" type="number" placeholder="Giá bán" value={editingItem.price} onChange={e => setEditingItem({...editingItem, price: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium text-slate-600">Giá gốc</label>
-                                <Input className="mt-1" type="number" placeholder="Giá gốc (để gạch chéo)" value={editingItem.compareAtPrice} onChange={e => setEditingItem({...editingItem, compareAtPrice: e.target.value})} />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-slate-600">Danh mục</label>
-                            <select className="mt-1 flex h-10 w-full items-center justify-between rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm" value={editingItem.category} onChange={e => setEditingItem({...editingItem, category: e.target.value})}>
-                                {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-slate-600">Ảnh món ăn</label>
-                            <div className="mt-1 flex items-center gap-4">
-                                <img src={editingItem.photo || 'https://placehold.co/100/e2e8f0/e2e8f0?text=?'} alt="Xem trước" className="w-20 h-20 object-cover rounded-lg border" />
-                                <label className="cursor-pointer flex-1 text-center py-2 px-4 border-2 border-dashed rounded-lg text-slate-500 hover:bg-slate-100">
-                                    <span>Tải ảnh lên</span>
-                                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                                </label>
-                            </div>
-                        </div>
-                        <div className="border-t border-slate-200 pt-4">
-                            <h3 className="font-semibold text-slate-800 mb-2">Gắn thẻ</h3>
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between bg-white p-3 rounded-lg border">
-                                    <div>
-                                        <p className="font-medium text-sm text-slate-700">Ưu đãi hôm nay</p>
-                                        <p className="text-xs text-slate-500">Gắn nhãn món ăn ưu đãi trong ngày.</p>
-                                    </div>
-                                    <Switch
-                                        checked={editingItem.isDealOfDay || false}
-                                        onChange={() => setEditingItem({...editingItem, isDealOfDay: !editingItem.isDealOfDay})}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="border-t border-slate-200 pt-4">
-                            <h3 className="font-semibold text-slate-800 mb-2">Liên kết nhóm tuỳ chọn</h3>
-                            <div className="space-y-2">
-                                {toppingGroups.length > 0 ? toppingGroups.map(group => (
-                                    <div key={group.id} className="flex items-center justify-between bg-white p-3 rounded-lg border">
-                                        <span className="font-medium text-sm text-slate-700">{group.name}</span>
-                                        <input
-                                            type="checkbox"
-                                            className="h-5 w-5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
-                                            checked={editingItem.toppingGroupIds?.includes(group.id) || false}
-                                            onChange={() => handleToppingGroupChange(group.id)}
-                                        />
-                                    </div>
-                                )) : <p className="text-sm text-slate-500 text-center py-4">Chưa có nhóm tuỳ chọn nào.</p>}
-                            </div>
-                        </div>
-                        
-                        {!editingItem.isNew && (
-                            <div className="border-t border-slate-200 pt-4">
-                                <Button variant="destructive" className="w-full" onClick={() => { setItemToDelete(editingItem) }}>
-                                    <Trash2Icon /> Xóa Món Ăn
-                                </Button>
-                            </div>
-                        )}
-                    </main>
+                <div className="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
+                    <div className="w-10"></div> {/* Spacer */}
+                    <h1 className="font-bold text-lg text-slate-800 text-center">TRANG QUẢN TRỊ</h1>
+                    <button onClick={onLogout} title="Đăng xuất" className="text-slate-500 hover:text-slate-800"><LogoutIcon /></button>
                 </div>
-              )}
-              
-              {itemToDelete && (<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60"><div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4"><h3 className="text-lg font-semibold">Xác nhận xóa món?</h3><p className="text-sm text-slate-500 mt-1">Bạn có chắc muốn xóa món <span className="font-bold">"{itemToDelete.name}"</span>?</p><div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setItemToDelete(null)}>Hủy</Button><Button variant="destructive" onClick={handleDeleteItem}>Xác nhận xóa</Button></div></div></div>)}
+              </header>
+              <main className="max-w-md mx-auto px-4 pb-24"> {adminTab === 'orders' && <OrdersPage orders={orders} />} {adminTab === 'menu' && <MenuPage menu={menu} categories={categories} toppingGroups={toppingGroups} allToppings={toppings} updateItemProperty={updateItemProperty} setEditingItem={setEditingItem} handleAddCategory={handleAddCategory} />} {adminTab === 'stats' && <StatsPage orders={orders} menu={menu} />} </main>
+              <footer className="fixed bottom-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-lg border-t border-slate-200 z-50">
+                <div className="max-w-md mx-auto grid grid-cols-3 h-full">
+                    <button onClick={() => setAdminTab('orders')} className="relative flex flex-col items-center justify-center text-sm font-medium"> <OrdersIcon className={adminTab === 'orders' ? `brand-color` : 'text-slate-400'}/> <span className={adminTab === 'orders' ? `brand-color` : 'text-slate-600'}>Đơn hàng</span> {pendingOrderCount > 0 && <span className="absolute top-2 right-6 w-4 h-4 brand-bg text-white text-xs rounded-full flex items-center justify-center">{pendingOrderCount}</span>} </button>
+                    <button onClick={() => setAdminTab('menu')} className="flex flex-col items-center justify-center text-sm font-medium"> <MenuIcon className={adminTab === 'menu' ? `brand-color` : 'text-slate-400'}/> <span className={adminTab === 'menu' ? `brand-color` : 'text-slate-600'}>Thực đơn</span> </button>
+                    <button onClick={() => setAdminTab('stats')} className="flex flex-col items-center justify-center text-sm font-medium"> <StatsIcon className={adminTab === 'stats' ? `brand-color` : 'text-slate-400'}/> <span className={adminTab === 'stats' ? `brand-color` : 'text-slate-600'}>Thống kê</span> </button>
+                </div>
+              </footer>
+              {editingItem && ( <div className="fixed inset-0 z-[60] bg-slate-50 flex flex-col"> <header className="sticky top-0 z-10 bg-white flex items-center justify-between p-3 border-b border-slate-200 flex-shrink-0"> <Button variant="ghost" size="icon" onClick={() => setEditingItem(null)}><ChevronLeftIcon /></Button> <h2 className="font-bold text-lg text-slate-800">{editingItem.isNew ? 'Thêm Món Mới' : 'Sửa Món'}</h2> <Button size="sm" onClick={handleSaveItem}>Lưu</Button> </header> <main className="flex-1 p-4 space-y-4 overflow-y-auto"> <div> <label className="text-sm font-medium text-slate-600">Tên món</label> <Input className="mt-1" placeholder="Tên món" value={editingItem.name} onChange={e => setEditingItem({...editingItem, name: e.target.value})} /> </div> <div> <label className="text-sm font-medium text-slate-600">Mô tả</label> <textarea className="mt-1 flex min-h-[80px] w-full rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 brand-ring" placeholder="Mô tả món ăn" value={editingItem.description} onChange={e => setEditingItem({...editingItem, description: e.target.value})} /> </div> <div className="grid grid-cols-2 gap-4"> <div> <label className="text-sm font-medium text-slate-600">Giá bán (VND)</label> <Input className="mt-1" type="number" placeholder="Giá bán" value={editingItem.price} onChange={e => setEditingItem({...editingItem, price: e.target.value})} /> </div> <div> <label className="text-sm font-medium text-slate-600">Giá gốc</label> <Input className="mt-1" type="number" placeholder="Giá gốc (để gạch chéo)" value={editingItem.compareAtPrice} onChange={e => setEditingItem({...editingItem, compareAtPrice: e.target.value})} /> </div> </div> <div> <label className="text-sm font-medium text-slate-600">Danh mục</label> <select className="mt-1 flex h-10 w-full items-center justify-between rounded-lg border border-slate-300 bg-transparent px-3 py-2 text-sm" value={editingItem.category} onChange={e => setEditingItem({...editingItem, category: e.target.value})}> {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)} </select> </div> <div> <label className="text-sm font-medium text-slate-600">Ảnh món ăn</label> <div className="mt-1 flex items-center gap-4"> <img src={editingItem.photo || 'https://placehold.co/100/e2e8f0/e2e8f0?text=?'} alt="Xem trước" className="w-20 h-20 object-cover rounded-lg border" /> <label className="cursor-pointer flex-1 text-center py-2 px-4 border-2 border-dashed rounded-lg text-slate-500 hover:bg-slate-100"> <span>Tải ảnh lên</span> <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} /> </label> </div> </div> <div className="border-t border-slate-200 pt-4"> <h3 className="font-semibold text-slate-800 mb-2">Gắn thẻ</h3> <div className="space-y-2"> <div className="flex items-center justify-between bg-white p-3 rounded-lg border"> <div> <p className="font-medium text-sm text-slate-700">Ưu đãi hôm nay</p> <p className="text-xs text-slate-500">Gắn nhãn món ăn ưu đãi trong ngày.</p> </div> <Switch checked={editingItem.isDealOfDay || false} onChange={() => setEditingItem({...editingItem, isDealOfDay: !editingItem.isDealOfDay})} /> </div> </div> </div> <div className="border-t border-slate-200 pt-4"> <h3 className="font-semibold text-slate-800 mb-2">Liên kết nhóm tuỳ chọn</h3> <div className="space-y-2"> {toppingGroups.length > 0 ? toppingGroups.map(group => ( <div key={group.id} className="flex items-center justify-between bg-white p-3 rounded-lg border"> <span className="font-medium text-sm text-slate-700">{group.name}</span> <input type="checkbox" className="h-5 w-5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer" checked={editingItem.toppingGroupIds?.includes(group.id) || false} onChange={() => handleToppingGroupChange(group.id)} /> </div> )) : <p className="text-sm text-slate-500 text-center py-4">Chưa có nhóm tuỳ chọn nào.</p>} </div> </div> {!editingItem.isNew && ( <div className="border-t border-slate-200 pt-4"> <Button variant="destructive" className="w-full" onClick={() => { setItemToDelete(editingItem) }}> <Trash2Icon /> Xóa Món Ăn </Button> </div> )} </main> </div> )} {itemToDelete && (<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60"><div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm m-4"><h3 className="text-lg font-semibold">Xác nhận xóa món?</h3><p className="text-sm text-slate-500 mt-1">Bạn có chắc muốn xóa món <span className="font-bold">"{itemToDelete.name}"</span>?</p><div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setItemToDelete(null)}>Hủy</Button><Button variant="destructive" onClick={handleDeleteItem}>Xác nhận xóa</Button></div></div></div>)} </div> );
+        }
 
-            </div>
-          );
+        // ===== THAY ĐỔI: Component cổng bảo mật =====
+        function AdminGate() {
+            const [user, setUser] = useState(null);
+            const [isAuthReady, setIsAuthReady] = useState(false);
+            const [error, setError] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+
+            useEffect(() => {
+                // Lắng nghe thay đổi trạng thái đăng nhập
+                const unsubscribe = onAuthStateChanged(auth, (user) => {
+                    setUser(user);
+                    setIsAuthReady(true);
+                });
+                return () => unsubscribe(); // Cleanup listener on component unmount
+            }, []);
+
+            const handleLogin = (email, password) => {
+                setIsLoading(true);
+                setError('');
+                signInWithEmailAndPassword(auth, email, password)
+                    .catch(error => {
+                        console.error("Lỗi đăng nhập:", error.code);
+                        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                            setError('Email hoặc mật khẩu không chính xác.');
+                        } else {
+                            setError('Đã có lỗi xảy ra. Vui lòng thử lại.');
+                        }
+                    })
+                    .finally(() => {
+                        setIsLoading(false);
+                    });
+            };
+
+            const handleLogout = () => {
+                signOut(auth).catch(error => console.error("Lỗi đăng xuất:", error));
+            };
+            
+            if (!isAuthReady) {
+                return <LoadingScreen text="Đang khởi động..." />;
+            }
+            
+            if (user) {
+                return <App onLogout={handleLogout} />;
+            }
+            
+            return <LoginScreen onLogin={handleLogin} error={error} isLoading={isLoading} />;
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<AdminGate />);
 
     </script>
 </body>
 </html>
-
