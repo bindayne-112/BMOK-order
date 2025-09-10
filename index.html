@@ -260,7 +260,7 @@
             );
         };
         
-        const DealItemCard = ({ item, onClick, onAdd }) => {
+        const DealItemCard = ({ item, quantity, onClick, onAdd, onDecrease }) => {
             return (
                 <div className="relative flex-shrink-0 w-60 bg-white rounded-2xl shadow-md p-3 flex items-center gap-3 cursor-pointer active:bg-neutral-50" onClick={onClick}>
                     <img src={item.photo} alt={item.name} className="w-20 h-20 object-cover rounded-lg flex-shrink-0"/>
@@ -271,9 +271,19 @@
                            {item.compareAtPrice > item.price && <p className="text-sm text-neutral-400 line-through">{vnd(item.compareAtPrice)}</p>}
                         </div>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); onAdd(item); }} className="absolute bottom-3 right-3 h-9 w-9 flex items-center justify-center rounded-full brand-bg text-white shadow-lg transform active:scale-90 transition-transform">
-                        <PlusIcon className="w-5 h-5" />
-                    </button>
+                    <div className="absolute bottom-3 right-3">
+                        {quantity > 0 ? (
+                            <div className="flex items-center gap-2 rounded-full border bg-white shadow-sm">
+                                <button onClick={(e) => {e.stopPropagation(); onDecrease(item.id)}} className="rounded-full w-8 h-8 flex items-center justify-center"><MinusIcon/></button>
+                                <span className="font-bold w-4 text-center">{quantity}</span>
+                                <button onClick={(e) => {e.stopPropagation(); onAdd(item)}} className="rounded-full w-8 h-8 flex items-center justify-center brand-bg text-white"><PlusIcon className="w-5 h-5"/></button>
+                            </div>
+                        ) : (
+                            <button onClick={(e) => { e.stopPropagation(); onAdd(item); }} className="h-9 w-9 flex items-center justify-center rounded-full brand-bg text-white shadow-lg transform active:scale-90 transition-transform">
+                                <PlusIcon className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
                 </div>
             )
         }
@@ -362,7 +372,7 @@
 
           const decreaseSimpleItem = (itemId) => {
               setCart(prev => {
-                  const existing = prev.find(c => c.id === itemId && !c.selectedToppings?.length);
+                  const existing = prev.find(c => c.id === itemId && !c.selectedToppings?.length && !c.note);
                   if (!existing) return prev;
                   if (existing.qty === 1) return prev.filter(c => c.cartId !== existing.cartId);
                   return prev.map(c => c.cartId === existing.cartId ? { ...c, qty: c.qty - 1 } : c);
@@ -461,7 +471,19 @@
                                 </button>
                             </div>
                             <div className="flex gap-3 overflow-x-auto scrollbar-hide px-4">
-                                {dealOfDayItems.map(item => <DealItemCard key={item.id} item={item} onClick={() => handleItemClick(item)} onAdd={addOrIncreaseSimpleItem} />)}
+                                {dealOfDayItems.map(item => {
+                                    const simpleCartItem = cart.find(c => c.id === item.id && !c.selectedToppings?.length && !c.note);
+                                    return (
+                                        <DealItemCard 
+                                            key={item.id} 
+                                            item={item} 
+                                            quantity={simpleCartItem?.qty || 0}
+                                            onClick={() => handleItemClick(item)} 
+                                            onAdd={addOrIncreaseSimpleItem}
+                                            onDecrease={decreaseSimpleItem}
+                                        />
+                                    )
+                                })}
                             </div>
                         </section>
                     )}
