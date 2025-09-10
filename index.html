@@ -140,7 +140,7 @@
                         {/* Scrollable options area */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50">
                              {relevantGroups.map(group => {
-                                let groupToppings = allToppings.filter(t => t.groupId === group.id && t.available);
+                                let groupToppings = allToppings.filter(t => t.groupId === group.id);
                                 if (groupToppings.length === 0) return null;
                                 if (group.name?.toLowerCase().includes('kích cỡ')) {
                                     const sizeOrder = ['nhỏ', 'vừa', 'lớn'];
@@ -155,13 +155,20 @@
                                         <div className="mt-2 space-y-2">
                                             {groupToppings.map(option => {
                                                 const isChecked = group.type === 'single' ? selectedOptions[group.id] === option.id : (selectedOptions[group.id] || []).includes(option.id);
+                                                const isDisabled = !option.available;
                                                 return (
-                                                    <label key={option.id} className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg cursor-pointer">
+                                                    <label key={option.id} className={`flex items-center justify-between p-3 bg-neutral-50 rounded-lg ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                                                         <div>
                                                             <p className="font-medium text-neutral-700">{option.name}</p>
                                                             <p className="text-sm brand-color font-semibold">+{vnd(option.price)}</p>
                                                         </div>
-                                                        <input type={group.type === 'single' ? 'radio' : 'checkbox'} name={`group-${group.id}`} checked={isChecked} onChange={() => handleOptionChange(group, option.id)} className="h-5 w-5 rounded-full border-neutral-300 text-orange-600 focus:ring-orange-500 cursor-pointer" />
+                                                        <input 
+                                                            type={group.type === 'single' ? 'radio' : 'checkbox'} 
+                                                            name={`group-${group.id}`} 
+                                                            checked={isChecked && !isDisabled}
+                                                            onChange={() => !isDisabled && handleOptionChange(group, option.id)} 
+                                                            disabled={isDisabled}
+                                                            className="h-5 w-5 rounded-full border-neutral-300 text-orange-600 focus:ring-orange-500 cursor-pointer disabled:cursor-not-allowed disabled:bg-neutral-200" />
                                                     </label>
                                                 );
                                             })}
