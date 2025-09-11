@@ -280,9 +280,18 @@
           const [isRinging, setIsRinging] = useState(false);
           const audioContextRef = useRef(null);
           const [showEnableBanner, setShowEnableBanner] = useState(false);
+          
+          const handleTabClick = useCallback((tabName) => {
+            setAdminTab(tabName);
+            if(tabName === 'orders') {
+                setIsRinging(false);
+            }
+          }, []);
 
           useEffect(() => {
-            if (Notification.permission !== 'granted' || !audioContextRef.current || audioContextRef.current.state !== 'running') {
+            const audioNeedsInit = !audioContextRef.current || audioContextRef.current.state !== 'running';
+            const notificationNeedsInit = typeof Notification !== 'undefined' && Notification.permission !== 'granted';
+            if (audioNeedsInit || notificationNeedsInit) {
                 setShowEnableBanner(true);
             }
           }, []);
@@ -295,7 +304,7 @@
                       audioContextRef.current = context;
                   }
                   
-                  if (Notification.permission !== 'granted') {
+                  if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
                       await Notification.requestPermission();
                   }
 
@@ -386,7 +395,7 @@
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added" && !initialLoad.current) {
                         setIsRinging(true);
-                        if (document.hidden && Notification.permission === 'granted') {
+                        if (typeof Notification !== 'undefined' && document.hidden && Notification.permission === 'granted') {
                             const newOrder = change.doc.data();
                             const notification = new Notification('Có đơn hàng mới!', {
                                 body: `Đơn hàng #${String(newOrder.createdAt).slice(-6)} từ ${newOrder.contact}.`,
@@ -415,7 +424,7 @@
             setLoading(false);
             
             return () => unsubscribers.forEach(unsub => unsub());
-        }, []);
+        }, [handleTabClick]);
 
 
           const pendingOrderCount = useMemo(() => orders.filter(o => o.status === 'pending').length, [orders]); 
@@ -428,13 +437,6 @@
           
           if (loading) { return <LoadingScreen text="Đang tải dữ liệu..." />; }
           
-          const handleTabClick = (tabName) => {
-            setAdminTab(tabName);
-            if(tabName === 'orders' && isRinging) {
-                setIsRinging(false);
-            }
-          }
-
           return (
             <div className="min-h-screen">
                {showEnableBanner && (
