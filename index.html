@@ -17,6 +17,7 @@
         window.firebaseFirestore = { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, query, orderBy };
     </script>
     <style>
+        body { font-family: 'Inter', sans-serif; }
         .brand-color { color: #fc6806; }
         .brand-bg { background-color: #fc6806; }
         .brand-ring:focus { --tw-ring-color: #fc6806; }
@@ -67,7 +68,6 @@
         const Input = ({ className, ...props }) => <input className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 brand-ring ${className}`} {...props} />;
         const Textarea = ({ className, ...props }) => <textarea className={`flex min-h-[60px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 brand-ring ${className}`} {...props} />;
 
-        // START EDIT: Redesigned modal for better visibility of toppings
         const ItemDetailModal = ({ item, allToppingGroups, allToppings, onClose, onAddToCart }) => {
             const [quantity, setQuantity] = useState(1);
             const [note, setNote] = useState('');
@@ -125,7 +125,6 @@
                     <div className="absolute inset-0 bg-black/40" onClick={onClose}></div>
                     <div className="relative bg-white w-full rounded-t-2xl flex flex-col max-h-[85vh]">
                         
-                        {/* Compact Header */}
                         <div className="flex-shrink-0 p-4 border-b">
                             <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-3" aria-hidden="true"></div>
                             <div className="flex items-start gap-4">
@@ -137,7 +136,6 @@
                             </div>
                         </div>
 
-                        {/* Scrollable options area */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50">
                              {relevantGroups.map(group => {
                                 let groupToppings = allToppings.filter(t => t.groupId === group.id);
@@ -182,7 +180,6 @@
                             </div>
                         </div>
 
-                        {/* Sticky footer */}
                         <div className="flex-shrink-0 p-3 border-t bg-white/80 backdrop-blur-lg flex items-center justify-between gap-3 pb-safe">
                             <div className="flex items-center gap-2">
                                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="h-10 w-10 flex items-center justify-center rounded-full border bg-neutral-100 text-neutral-700 font-bold text-xl">-</button>
@@ -195,7 +192,6 @@
                 </div>
             );
         }
-        // END EDIT
         
         const ThankYouPage = ({ order, onNewOrder }) => {
             if (!order) return null;
@@ -509,7 +505,16 @@
                                     {group.items.map(m => {
                                         const simpleCartItem = cart.find(c => c.id === m.id && !c.selectedToppings?.length);
                                         return (
-                                            <Card key={m.id} onClick={() => handleItemClick(m)} className={`relative ${m.available && storeStatus.isOpen ? 'cursor-pointer active:bg-neutral-50' : ''}`}>
+                                            <Card key={m.id} onClick={() => handleItemClick(m)} className={`relative overflow-hidden ${m.available && storeStatus.isOpen ? 'cursor-pointer active:bg-neutral-50' : ''}`}>
+                                                
+                                                {/* ===== THAY ĐỔI: Đổi màu nhãn Bán chạy ===== */}
+                                                {(m.bestSeller || m.isNewDish) && (
+                                                  <div className={`absolute top-0 left-0 text-xs font-semibold text-white px-2 py-1 rounded-br-lg ${m.bestSeller ? 'bg-orange-500' : 'bg-blue-500'}`}>
+                                                      {m.bestSeller ? 'Bán chạy' : 'Món mới'}
+                                                  </div>
+                                                )}
+                                                {/* ============================================== */}
+
                                                 <div className="flex items-center p-3 gap-3">
                                                     <img src={m.photo} alt={m.name} className="w-24 h-24 object-cover rounded-md flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/>
                                                     <div className="flex-grow self-start">
