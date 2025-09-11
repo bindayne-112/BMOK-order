@@ -279,28 +279,37 @@
           const initialLoad = useRef(true); 
           const [isRinging, setIsRinging] = useState(false);
           const audioContextRef = useRef(null);
-          const [showEnableSound, setShowEnableSound] = useState(true);
+          const [showEnableBanner, setShowEnableBanner] = useState(false);
 
-          const enableSound = async () => {
-              if (audioContextRef.current && audioContextRef.current.state === 'running') {
-                  setShowEnableSound(false);
-                  return;
-              }
+          useEffect(() => {
+            if (Notification.permission !== 'granted' || !audioContextRef.current || audioContextRef.current.state !== 'running') {
+                setShowEnableBanner(true);
+            }
+          }, []);
+
+          const enableFeatures = async () => {
               try {
-                  const context = new (window.AudioContext || window.webkitAudioContext)();
-                  await context.resume();
-                  audioContextRef.current = context;
+                  if (!audioContextRef.current || audioContextRef.current.state !== 'running') {
+                      const context = new (window.AudioContext || window.webkitAudioContext)();
+                      await context.resume();
+                      audioContextRef.current = context;
+                  }
                   
-                  const oscillator = context.createOscillator();
-                  oscillator.frequency.setValueAtTime(1200, context.currentTime);
-                  oscillator.connect(context.destination);
-                  oscillator.start(context.currentTime);
-                  oscillator.stop(context.currentTime + 0.1);
-                  
-                  setShowEnableSound(false);
+                  if (Notification.permission !== 'granted') {
+                      await Notification.requestPermission();
+                  }
+
+                  if (audioContextRef.current && audioContextRef.current.state === 'running') {
+                     const oscillator = audioContextRef.current.createOscillator();
+                     oscillator.frequency.setValueAtTime(1200, audioContextRef.current.currentTime);
+                     oscillator.connect(audioContextRef.current.destination);
+                     oscillator.start(audioContextRef.current.currentTime);
+                     oscillator.stop(audioContextRef.current.currentTime + 0.1);
+                  }
               } catch (e) {
-                  console.error("Could not initialize AudioContext:", e);
-                  setShowEnableSound(false); 
+                  console.error("Could not enable features:", e);
+              } finally {
+                setShowEnableBanner(false);
               }
           };
 
@@ -352,28 +361,62 @@
             };
           }, [isRinging, playNotificationSound]);
 
+          useEffect(() => {
+            const unsubscribers = [];
+            
+            const collectionsToFetch = [
+                { name: "menu", setter: setMenu, query: query(collection(db, "menu"), orderBy("order", "asc")) },
+                { name: "categories", setter: setCategories, query: query(collection(db, "categories"), orderBy("name", "asc")) },
+                { name: "toppingGroups", setter: setToppingGroups, query: query(collection(db, "toppingGroups"), orderBy("name", "asc")) },
+                { name: "toppings", setter: setToppings, query: query(collection(db, "toppings")) }
+            ];
 
-          useEffect(() => { 
-            const unsubscribers = []; 
-            const collectionsToFetch = [ 
-                { name: "menu", setter: setMenu, query: query(collection(db, "menu"), orderBy("order", "asc")) }, 
-                { name: "categories", setter: setCategories, query: query(collection(db, "categories"), orderBy("name", "asc")) }, 
-                { name: "orders", setter: (data) => { 
-                    if (!initialLoad.current && data.length > orders.length) { 
+            collectionsToFetch.forEach(({ setter, query: q }) => {
+                unsubscribers.push(onSnapshot(q, (snapshot) => {
+                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setter(data);
+                }));
+            });
+
+            const ordersQuery = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+            const ordersUnsub = onSnapshot(ordersQuery, (snapshot) => {
+                const serverOrders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setOrders(serverOrders);
+
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added" && !initialLoad.current) {
                         setIsRinging(true);
-                    } 
-                    setOrders(data); 
-                    initialLoad.current = false; 
-                }, query: query(collection(db, "orders"), orderBy("createdAt", "desc")) }, 
-                { name: "toppingGroups", setter: setToppingGroups, query: query(collection(db, "toppingGroups"), orderBy("name", "asc")) }, 
-                { name: "toppings", setter: setToppings, query: query(collection(db, "toppings")) } 
-            ]; 
-            collectionsToFetch.forEach(({ setter, query: q }) => { unsubscribers.push(onSnapshot(q, (snapshot) => { const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); setter(data); })); }); 
-            const storeStatusRef = doc(db, "settings", "storeStatus"); 
-            unsubscribers.push(onSnapshot(storeStatusRef, (doc) => doc.exists() ? setStoreStatus(doc.data()) : setDoc(doc.ref, { isOpen: true }))); 
-            setLoading(false); 
-            return () => unsubscribers.forEach(unsub => unsub()); 
-        }, [orders.length]);
+                        if (document.hidden && Notification.permission === 'granted') {
+                            const newOrder = change.doc.data();
+                            const notification = new Notification('Có đơn hàng mới!', {
+                                body: `Đơn hàng #${String(newOrder.createdAt).slice(-6)} từ ${newOrder.contact}.`,
+                                icon: 'https://placehold.co/192x192/fc6806/FFFFFF/png?text=QT',
+                                badge: 'https://placehold.co/96x96/fc6806/FFFFFF/png?text=!',
+                                vibrate: [200, 100, 200],
+                                tag: 'new-order'
+                            });
+                            notification.onclick = () => {
+                                window.focus();
+                                handleTabClick('orders');
+                            };
+                        }
+                    }
+                });
+                
+                if (initialLoad.current) {
+                    initialLoad.current = false;
+                }
+            });
+            unsubscribers.push(ordersUnsub);
+            
+            const storeStatusRef = doc(db, "settings", "storeStatus");
+            unsubscribers.push(onSnapshot(storeStatusRef, (doc) => doc.exists() ? setStoreStatus(doc.data()) : setDoc(doc.ref, { isOpen: true })));
+            
+            setLoading(false);
+            
+            return () => unsubscribers.forEach(unsub => unsub());
+        }, []);
+
 
           const pendingOrderCount = useMemo(() => orders.filter(o => o.status === 'pending').length, [orders]); 
           const updateItemProperty = async (id, data) => { try { await updateDoc(doc(db, "menu", id), data); } catch (e) { console.error("Lỗi cập nhật món:", e); } }; 
@@ -394,12 +437,12 @@
 
           return (
             <div className="min-h-screen">
-               {showEnableSound && (
-                <div className="sticky top-0 z-50 bg-yellow-200 text-yellow-900 p-3 text-center font-semibold cursor-pointer" onClick={enableSound}>
-                    Nhấn vào đây để bật thông báo âm thanh
+               {showEnableBanner && (
+                <div className="sticky top-0 z-50 bg-yellow-200 text-yellow-900 p-3 text-center font-semibold cursor-pointer" onClick={enableFeatures}>
+                    Nhấn để bật âm thanh & thông báo đẩy
                 </div>
               )}
-              <header className={`sticky ${showEnableSound ? 'top-[48px]' : 'top-0'} z-40 bg-white/80 backdrop-blur-lg border-b border-slate-200`}>
+              <header className={`sticky ${showEnableBanner ? 'top-[48px]' : 'top-0'} z-40 bg-white/80 backdrop-blur-lg border-b border-slate-200`}>
                 <div className="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
                     <div className="w-10"></div>
                     <h1 className="font-bold text-lg text-slate-800 text-center">TRANG QUẢN TRỊ</h1>
