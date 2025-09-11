@@ -266,12 +266,51 @@
         function StatsPage({ orders, menu }) { const [filter, setFilter] = useState('today'); const filteredOrders = useMemo(() => { const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); const startOfWeek = new Date(today); startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); return orders.filter(o => { if (o.status !== 'completed') return false; const orderDate = new Date(o.createdAt); switch (filter) { case 'today': return orderDate >= today; case 'week': return orderDate >= startOfWeek; case 'month': return orderDate >= startOfMonth; default: return true; } }); }, [orders, filter]); const totalRevenue = useMemo(() => filteredOrders.reduce((sum, order) => sum + order.total, 0), [filteredOrders]); const totalOrders = filteredOrders.length; const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0; const bestSellers = useMemo(() => { if (!filteredOrders.length) return []; const itemCounts = {}; filteredOrders.forEach(order => { order.items.forEach(item => { itemCounts[item.name] = (itemCounts[item.name] || 0) + item.qty; }); }); return Object.entries(itemCounts) .sort(([, qtyA], [, qtyB]) => qtyB - qtyA) .slice(0, 5) .map(([name, quantity]) => ({ name, quantity })); }, [filteredOrders]); const StatCard = ({ title, value, subtext }) => ( <Card className="p-4"> <p className="text-sm font-medium text-slate-500">{title}</p> <p className="text-2xl font-bold text-slate-800 mt-1">{value}</p> {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>} </Card> ); return ( <div> <h2 className="text-2xl font-bold my-4 text-slate-800">Thống kê</h2> <div className="flex bg-slate-200 rounded-lg p-1 mb-4"> <button onClick={() => setFilter('today')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'today' ? 'bg-white shadow-sm' : ''}`}>Hôm nay</button> <button onClick={() => setFilter('week')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'week' ? 'bg-white shadow-sm' : ''}`}>Tuần này</button> <button onClick={() => setFilter('month')} className={`flex-1 text-sm font-semibold p-2 rounded-md transition-colors ${filter === 'month' ? 'bg-white shadow-sm' : ''}`}>Tháng này</button> </div> <div className="grid grid-cols-2 gap-4"> <StatCard title="Doanh thu" value={vnd(totalRevenue)} /> <StatCard title="Đơn hàng" value={totalOrders} /> </div> <div className="mt-4"> <StatCard title="Trung bình/đơn" value={vnd(averageOrderValue)} /> </div> <div className="mt-6"> <h3 className="text-lg font-bold text-slate-800 mb-3">Món bán chạy nhất</h3> {bestSellers.length > 0 ? ( <Card className="p-4"> <ul className="space-y-3"> {bestSellers.map((item, index) => ( <li key={item.name} className="flex items-center justify-between text-sm"> <span className="font-medium text-slate-700">{index + 1}. {item.name}</span> <span className="font-bold text-slate-800">{item.quantity} <span className="font-normal text-slate-500">lượt</span></span> </li> ))} </ul> </Card> ) : ( <div className="text-center text-slate-500 py-10"> <p>Không có dữ liệu cho khoảng thời gian này.</p> </div> )} </div> </div> ); }
 
         function App({onLogout}) {
-          const [menu, setMenu] = useState([]); const [categories, setCategories] = useState([]); const [orders, setOrders] = useState([]); const [toppingGroups, setToppingGroups] = useState([]); const [toppings, setToppings] = useState([]); const [storeStatus, setStoreStatus] = useState({ isOpen: true }); const [loading, setLoading] = useState(true); const [adminTab, setAdminTab] = useState("orders"); const [editingItem, setEditingItem] = useState(null); const [itemToDelete, setItemToDelete] = useState(null); const initialLoad = useRef(true); 
+          const [menu, setMenu] = useState([]); 
+          const [categories, setCategories] = useState([]); 
+          const [orders, setOrders] = useState([]); 
+          const [toppingGroups, setToppingGroups] = useState([]); 
+          const [toppings, setToppings] = useState([]); 
+          const [storeStatus, setStoreStatus] = useState({ isOpen: true }); 
+          const [loading, setLoading] = useState(true); 
+          const [adminTab, setAdminTab] = useState("orders"); 
+          const [editingItem, setEditingItem] = useState(null); 
+          const [itemToDelete, setItemToDelete] = useState(null); 
+          const initialLoad = useRef(true); 
           const [isRinging, setIsRinging] = useState(false);
-          
+          const audioContextRef = useRef(null);
+          const [showEnableSound, setShowEnableSound] = useState(true);
+
+          const enableSound = async () => {
+              if (audioContextRef.current && audioContextRef.current.state === 'running') {
+                  setShowEnableSound(false);
+                  return;
+              }
+              try {
+                  const context = new (window.AudioContext || window.webkitAudioContext)();
+                  await context.resume();
+                  audioContextRef.current = context;
+                  
+                  const oscillator = context.createOscillator();
+                  oscillator.frequency.setValueAtTime(1200, context.currentTime);
+                  oscillator.connect(context.destination);
+                  oscillator.start(context.currentTime);
+                  oscillator.stop(context.currentTime + 0.1);
+                  
+                  setShowEnableSound(false);
+              } catch (e) {
+                  console.error("Could not initialize AudioContext:", e);
+                  setShowEnableSound(false); 
+              }
+          };
+
           const playNotificationSound = useCallback(() => {
+            const audioContext = audioContextRef.current;
+            if (!audioContext || audioContext.state !== 'running') {
+                console.warn("Audio is not enabled by user yet.");
+                return;
+            }
             try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator1 = audioContext.createOscillator();
                 const gainNode1 = audioContext.createGain();
                 oscillator1.connect(gainNode1);
@@ -355,7 +394,12 @@
 
           return (
             <div className="min-h-screen">
-              <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-200">
+               {showEnableSound && (
+                <div className="sticky top-0 z-50 bg-yellow-200 text-yellow-900 p-3 text-center font-semibold cursor-pointer" onClick={enableSound}>
+                    Nhấn vào đây để bật thông báo âm thanh
+                </div>
+              )}
+              <header className={`sticky ${showEnableSound ? 'top-[48px]' : 'top-0'} z-40 bg-white/80 backdrop-blur-lg border-b border-slate-200`}>
                 <div className="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
                     <div className="w-10"></div>
                     <h1 className="font-bold text-lg text-slate-800 text-center">TRANG QUẢN TRỊ</h1>
