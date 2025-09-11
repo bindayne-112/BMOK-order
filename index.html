@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bánh Mì Ông Kòi - Đặt Hàng</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -266,6 +269,13 @@
         const DealItemCard = ({ item, quantity, onClick, onAdd, onDecrease }) => {
             return (
                 <div className="relative flex-shrink-0 w-60 bg-white rounded-2xl shadow-md p-3 flex items-center gap-3 cursor-pointer active:bg-neutral-50" onClick={onClick}>
+                    {/* ===== THAY ĐỔI: Thêm nhãn vào DealItemCard ===== */}
+                    {(item.bestSeller || item.isNewDish) && (
+                        <div className="absolute top-0 left-0 text-xs font-semibold text-white px-2 py-1 rounded-br-lg bg-orange-500">
+                            {item.bestSeller ? 'Bán chạy' : 'Món mới'}
+                        </div>
+                    )}
+                    {/* ============================================= */}
                     <img src={item.photo} alt={item.name} className="w-20 h-20 object-cover rounded-lg flex-shrink-0"/>
                     <div className="flex-1 self-start overflow-hidden">
                         <p className="font-bold text-neutral-800 truncate">{item.name}</p>
@@ -507,13 +517,11 @@
                                         return (
                                             <Card key={m.id} onClick={() => handleItemClick(m)} className={`relative overflow-hidden ${m.available && storeStatus.isOpen ? 'cursor-pointer active:bg-neutral-50' : ''}`}>
                                                 
-                                                {/* ===== THAY ĐỔI: Đổi màu nhãn Bán chạy ===== */}
                                                 {(m.bestSeller || m.isNewDish) && (
-                                                  <div className={`absolute top-0 left-0 text-xs font-semibold text-white px-2 py-1 rounded-br-lg ${m.bestSeller ? 'bg-orange-500' : 'bg-blue-500'}`}>
+                                                  <div className="absolute top-0 left-0 text-xs font-semibold text-white px-2 py-1 rounded-br-lg bg-orange-500">
                                                       {m.bestSeller ? 'Bán chạy' : 'Món mới'}
                                                   </div>
                                                 )}
-                                                {/* ============================================== */}
 
                                                 <div className="flex items-center p-3 gap-3">
                                                     <img src={m.photo} alt={m.name} className="w-24 h-24 object-cover rounded-md flex-shrink-0" onError={(e) => { e.currentTarget.src = 'https://placehold.co/100/fef2f2/ef4444?text=Lỗi'; }}/>
